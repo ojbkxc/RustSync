@@ -98,10 +98,10 @@ const resetPasswd = () => {
     <div class="setting-bottom">
       <div class="setting-bottom-item">{{ $t("setting.version") }}</div>
       <div class="setting-bottom-item">
-        <a href="https://github.com/ojbkxc/taosync-Magisk" target="_blank">{{ $t("setting.github") }}</a>
+        <a href="https://github.com/ojbkxc/RustSync" target="_blank">{{ $t("setting.github") }}</a>
       </div>
       <div class="setting-bottom-item">
-        <a href="https://github.com/ojbkxc/taosync-Magisk/issues" target="_blank">{{ $t("setting.issues") }}</a>
+        <a href="https://github.com/ojbkxc/RustSync/issues" target="_blank">{{ $t("setting.issues") }}</a>
       </div>
     </div>
   </div>

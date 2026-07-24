@@ -102,26 +102,65 @@ jobs:
           chmod 755 system/bin/taosync
           echo "taoSync binary copied to system/bin/taosync"
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: Copy frontend to Rust static directory
+        run: |
+          mkdir -p server/static
+          cp -r taosync/front/* server/static/
+          echo "Frontend copied to server/static/"
+
+      - name: Build Rust server (aarch64)
+        working-directory: server
+        run: |
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../system/bin
+          cp target/aarch64-linux-android/release/rustsync-server ../system/bin/rustsync_server
+          echo "Rust binary built: rustsync_server"
+
+      - name: Package Rust static files for Magisk
+        run: |
+          mkdir -p static
+          cp -r taosync/front/* static/
+          echo "Static files packaged for Magisk module"
+
       - name: Verify build artifact
         run: |
-          if [ ! -f "system/bin/taosync" ]; then
-            echo "::error::构建产物 system/bin/taosync 不存在"
+          if [ ! -f "system/bin/rustsync_server" ] && [ ! -f "system/bin/taosync" ]; then
+            echo "::error::构建产物不存在 (Rust 和 Python 二进制均缺失)"
             exit 1
+          fi
+          if [ -f "system/bin/rustsync_server" ]; then
+            echo "Rust 二进制已构建: system/bin/rustsync_server"
+          fi
+          if [ -f "system/bin/taosync" ]; then
+            echo "Python 二进制已构建: system/bin/taosync"
           fi
           echo "构建产物验证通过"
 
       - name: Package
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          zip -r taoSync-Magisk-${VERSION}-ci.zip . \
+          zip -r RustSync-Magisk-${VERSION}-ci.zip . \
             -x ".git/*" \
             -x ".github/*" \
             -x ".gitignore" \
             -x ".gitmodules" \
-            -x "taosync/*"
+            -x "taosync/*" \
+            -x "server/src/*" \
+            -x "server/target/*" \
+            -x "server/Cargo.*"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: taoSync-Magisk-CI
-          path: taoSync-Magisk-*-ci.zip
+          name: RustSync-Magisk-CI
+          path: RustSync-Magisk-*-ci.zip

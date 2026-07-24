@@ -128,57 +128,99 @@ jobs:
           chmod 755 system/bin/taosync
           echo "taoSync binary copied to system/bin/taosync"
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: Copy frontend to Rust static directory
+        run: |
+          mkdir -p server/static
+          cp -r taosync/front/* server/static/
+          echo "Frontend copied to server/static/"
+
+      - name: Build Rust server (aarch64)
+        working-directory: server
+        run: |
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../system/bin
+          cp target/aarch64-linux-android/release/rustsync-server ../system/bin/rustsync_server
+          echo "Rust binary built: rustsync_server"
+
+      - name: Package Rust static files for Magisk
+        run: |
+          mkdir -p static
+          cp -r taosync/front/* static/
+          echo "Static files packaged for Magisk module"
+
       - name: Verify build artifact
         run: |
-          if [ ! -f "system/bin/taosync" ]; then
-            echo "::error::构建产物 system/bin/taosync 不存在"
+          if [ ! -f "system/bin/rustsync_server" ] && [ ! -f "system/bin/taosync" ]; then
+            echo "::error::构建产物不存在 (Rust 和 Python 二进制均缺失)"
             exit 1
+          fi
+          if [ -f "system/bin/rustsync_server" ]; then
+            echo "Rust 二进制已构建: system/bin/rustsync_server"
+          fi
+          if [ -f "system/bin/taosync" ]; then
+            echo "Python 二进制已构建: system/bin/taosync"
+          fi
+          if [ -d "static" ] && [ "$(ls -A static 2>/dev/null)" ]; then
+            echo "前端静态文件已打包"
           fi
           echo "构建产物验证通过"
 
       - name: Package
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          zip -r taoSync-Magisk-${VERSION}.zip . \
+          zip -r RustSync-Magisk-${VERSION}.zip . \
             -x ".git/*" \
             -x ".github/*" \
             -x ".gitignore" \
             -x ".gitmodules" \
-            -x "taosync/*"
+            -x "taosync/*" \
+            -x "server/src/*" \
+            -x "server/target/*" \
+            -x "server/Cargo.*"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: taoSync-Magisk-${{ steps.version.outputs.version }}
-          path: taoSync-Magisk-${{ steps.version.outputs.version }}.zip
+          name: RustSync-Magisk-${{ steps.version.outputs.version }}
+          path: RustSync-Magisk-${{ steps.version.outputs.version }}.zip
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: taoSync Magisk ${{ steps.version.outputs.tag }}
+          name: RustSync ${{ steps.version.outputs.tag }}
           body: |
-            ## taoSync Magisk ${{ steps.version.outputs.version }}
+            ## RustSync ${{ steps.version.outputs.version }}
 
-            基于 taoSync 源码编译的 Magisk 模块，开机自启动 taoSync 同步服务。
+            基于 taoSync 源码编译的 Magisk 模块，开机自启动 RustSync 同步服务。
 
             ### 功能
-            - 开机自启动 taoSync 同步服务
+            - 开机自启动 RustSync 同步服务
             - 进程守护（崩溃自动重启）
             - Web 管理面板 (端口 8023)
             - 默认密码 `admin`
             - 支持 Magisk v20.4+
-            - 基于 PyInstaller + StaticX 编译 (arm64)
+            - 双版本支持：Rust (rustsync) + Python (taosync)
 
             ### 安装
-            1. 下载 `taoSync-Magisk-${{ steps.version.outputs.version }}.zip`
+            1. 下载 `RustSync-Magisk-${{ steps.version.outputs.version }}.zip`
             2. 通过 Magisk 刷入
             3. 重启设备
             4. 浏览器访问 `http://设备IP:8023`
 
             ### 配置
-            - 配置目录：`/data/adb/taosync/data/`
-            - 日志文件：`/data/adb/taosync/taosync.log`
-          files: taoSync-Magisk-${{ steps.version.outputs.version }}.zip
+            - 配置目录：`/data/adb/rustsync/data/`
+            - 日志文件：`/data/adb/rustsync/rustsync.log`
+          files: RustSync-Magisk-${{ steps.version.outputs.version }}.zip
           draft: false
           prerelease: false

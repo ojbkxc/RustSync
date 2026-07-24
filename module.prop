@@ -1,6 +1,6 @@
-id=taosync_magisk
-name=taoSync 同步服务
+id=rustsync_magisk
+name=RustSync 同步服务
 version=1.0
 versionCode=1
 author=ojbkxc
-description=开机自启动 taoSync，管理面板 http://手机IP:8023
+description=开机自启动 RustSync，管理面板 http://手机IP:8023

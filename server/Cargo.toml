@@ -1,0 +1,48 @@
+[package]
+name = "rustsync-server"
+version = "1.0.0"
+edition = "2021"
+description = "RustSync Rust 重写版 - 自动化存储同步服务"
+
+[dependencies]
+# Web 框架
+axum = { version = "0.6.20", features = ["multipart"] }
+tokio = { version = "1.48", features = ["full"] }
+tower-http = { version = "0.4", features = ["cors", "fs"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# 数据库
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# 工具库
+chrono = { version = "0.4", features = ["serde", "clock"], default-features = false }
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1", features = ["v4"] }
+rand = "0.8"
+
+# HTTP 客户端 (通知 + 外部API)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+mime_guess = "2.0"
+
+# 加密
+md-5 = "0.10"
+
+# Cron 调度
+cron = "0.12"
+
+# 存储驱动
+async-trait = "0.1"
+# 阿里云盘 - 通过 reqwest + OAuth
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
