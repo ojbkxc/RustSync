@@ -16,8 +16,8 @@ mod service;
 mod state;
 
 async fn ensure_dirs(config: &config::Config) {
-    let _ = std::fs::create_dir_all(&config.data_dir);
-    let _ = std::fs::create_dir_all(&config.log_dir);
+    let _ = tokio::fs::create_dir_all(&config.data_dir).await;
+    let _ = tokio::fs::create_dir_all(&config.log_dir).await;
 }
 
 #[tokio::main]

@@ -55,8 +55,44 @@ impl Scheduler {
                 }
             }
 
+            // 每次循环从数据库重新读取作业配置，确保 cron 变更等能及时生效
+            let current_job = {
+                let state = crate::state::get_global_state();
+                let db = state.db.lock().unwrap();
+                db.query_row(
+                    "SELECT enable, isCron, start_date, interval,
+                            year, month, day, week, day_of_week, hour, minute, second
+                     FROM job WHERE id=?",
+                    [job_id],
+                    |row| {
+                        Ok(Job {
+                            id: job_id,
+                            enable: row.get::<_, i32>(0)? != 0,
+                            is_cron: row.get(1)?,
+                            start_date: row.get(2)?,
+                            interval: row.get(3)?,
+                            year: row.get(4)?,
+                            month: row.get(5)?,
+                            day: row.get(6)?,
+                            week: row.get(7)?,
+                            day_of_week: row.get(8)?,
+                            hour: row.get(9)?,
+                            minute: row.get(10)?,
+                            second: row.get(11)?,
+                            ..Default::default()
+                        })
+                    },
+                ).unwrap_or_else(|_| job.clone())
+            }; // MutexGuard dropped here
+
+            // 如果数据库中的 enable 变为 0，退出循环
+            if !current_job.enable {
+                self.enabled.write().await.insert(job_id, false);
+                break;
+            }
+
             // 计算下次执行时间
-            let delay = self.calculate_delay(&job);
+            let delay = self.calculate_delay(&current_job);
             tracing::info!("作业 {} 将在 {} 秒后执行", job_id, delay);
 
             tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
@@ -76,7 +112,7 @@ impl Scheduler {
             }
 
             // 如果是一次性 cron 任务，执行完退出
-            if job.is_cron == 1 && job.start_date.is_some() {
+            if current_job.is_cron == 1 && current_job.start_date.is_some() {
                 break;
             }
         }

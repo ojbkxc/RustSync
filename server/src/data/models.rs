@@ -64,7 +64,7 @@ fn default_enabled() -> bool {
 
 // ==================== 作业 ====================
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Job {
     pub id: i64,
