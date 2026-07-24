@@ -24,6 +24,8 @@ FROM alpine:3.21
 VOLUME /app/data
 WORKDIR /app
 COPY --from=server-builder /app/target/release/rustsync-server /app/rustsync-server
+COPY --from=server-builder /app/locales ./locales
+COPY --from=server-builder /app/static ./static
 ENV RUSTSYNC_PORT=8023 \
     RUSTSYNC_EXPIRES=2 \
     RUSTSYNC_LOG_LEVEL=1 \

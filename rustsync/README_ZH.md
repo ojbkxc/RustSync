@@ -14,8 +14,8 @@
     <a href="https://github.com/ojbkxc/RustSync/actions/workflows/build.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/ojbkxc/RustSync/build.yml?branch=main" alt="Build status" />
     </a>
-    <a href="https://www.python.org/">
-      <img src="https://img.shields.io/badge/backend-python-326c9c.svg" alt="Python" />
+    <a href="https://www.rust-lang.org/">
+      <img src="https://img.shields.io/badge/backend-rust-8A4B38.svg" alt="Rust" />
     </a>
     <a href="https://vuejs.org/">
       <img src="https://img.shields.io/badge/frontend-vue-42b883.svg" alt="Vue" />
