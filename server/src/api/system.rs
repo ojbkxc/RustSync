@@ -39,7 +39,9 @@ pub async fn spa_fallback(
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> axum::response::Response {
     use axum::http::header;
-    let file_path = format!("static/{}", path);
+    // 防止路径穿越
+    let safe_path = path.replace("..", "").replace('\\', "/");
+    let file_path = format!("static/{}", safe_path.trim_start_matches('/'));
 
     // 先尝试读取具体文件
     if let Ok(content) = tokio::fs::read(&file_path).await {

@@ -30,6 +30,9 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
 
     let (_id, src_path, dst_path, _alist_id, method, source_mode, exclude, min_size, max_size) = job;
 
+    // dst_path 可能包含冒号分隔的多路径（用于扫描），取第一个路径作为写入目标
+    let dst_root = dst_path.split(':').next().unwrap_or(&dst_path).trim().to_string();
+
     // 创建任务记录
     let task_id = {
         let db = state.db.lock().unwrap();
@@ -95,13 +98,13 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // 执行操作
+    // 执行操作（传入源和目标根目录以构造完整路径）
     let total = operations.len();
     let mut success = 0;
     let mut failed = 0;
 
     for op in &operations {
-        match execute_operation(op).await {
+        match execute_operation(op, &src_path, &dst_root).await {
             Ok(_) => success += 1,
             Err(e) => {
                 failed += 1;
@@ -299,37 +302,52 @@ fn compare_entries(
 }
 
 /// 执行单个同步操作
-async fn execute_operation(op: &SyncOperation) -> anyhow::Result<()> {
+/// src_root: 源目录根路径，dst_root: 目标目录根路径
+async fn execute_operation(
+    op: &SyncOperation,
+    src_root: &str,
+    dst_root: &str,
+) -> anyhow::Result<()> {
+    use std::path::Path;
     match op {
         SyncOperation::Copy { src, dst, size: _ } => {
-            let dst_path = std::path::Path::new(dst);
-            if let Some(parent) = dst_path.parent() {
-                tokio::fs::create_dir_all(parent).await?;
+            let src_full = Path::new(src_root).join(src);
+            let dst_full = Path::new(dst_root).join(dst);
+            if src_full.is_dir() {
+                // 目录：创建目标目录即可
+                tokio::fs::create_dir_all(&dst_full).await?;
+                tracing::debug!("创建目录: {}", dst_full.display());
+            } else {
+                if let Some(parent) = dst_full.parent() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+                tokio::fs::copy(&src_full, &dst_full).await?;
+                tracing::debug!("复制: {} -> {}", src_full.display(), dst_full.display());
             }
-            tokio::fs::copy(src, dst).await?;
-            tracing::debug!("复制: {} -> {}", src, dst);
         }
         SyncOperation::Delete { path, is_dir } => {
+            let full_path = Path::new(dst_root).join(path);
             if *is_dir {
-                if std::path::Path::new(path).is_dir() {
-                    tokio::fs::remove_dir_all(path).await?;
+                if full_path.is_dir() {
+                    tokio::fs::remove_dir_all(&full_path).await?;
                 }
             } else {
-                tokio::fs::remove_file(path).await?;
+                tokio::fs::remove_file(&full_path).await?;
             }
-            tracing::debug!("删除: {}", path);
+            tracing::debug!("删除: {}", full_path.display());
         }
         SyncOperation::Move { src, dst, size: _ } => {
-            let dst_path = std::path::Path::new(dst);
-            if let Some(parent) = dst_path.parent() {
+            let src_full = Path::new(src_root).join(src);
+            let dst_full = Path::new(dst_root).join(dst);
+            if let Some(parent) = dst_full.parent() {
                 tokio::fs::create_dir_all(parent).await?;
             }
             // 先尝试 rename（同文件系统），失败则 copy + delete
-            if tokio::fs::rename(src, dst).await.is_err() {
-                tokio::fs::copy(src, dst).await?;
-                tokio::fs::remove_file(src).await?;
+            if tokio::fs::rename(&src_full, &dst_full).await.is_err() {
+                tokio::fs::copy(&src_full, &dst_full).await?;
+                tokio::fs::remove_file(&src_full).await?;
             }
-            tracing::debug!("移动: {} -> {}", src, dst);
+            tracing::debug!("移动: {} -> {}", src_full.display(), dst_full.display());
         }
     }
     Ok(())

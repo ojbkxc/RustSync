@@ -235,7 +235,7 @@ pub async fn change_password(
             .unwrap_or(false);
 
         if !valid {
-            return Json(ApiResponse::<()>::err("原密码错误"));
+            return Json(ApiResponse::<serde_json::Value>::err("原密码错误"));
         }
 
         let new_hash = hash_password(&req.passwd);
@@ -249,7 +249,7 @@ pub async fn change_password(
             Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("修改失败: {}", e))),
         }
     } else {
-        Json(ApiResponse::<()>::err_code(401, "未登录"))
+        Json(ApiResponse::<serde_json::Value>::err_code(401, "未登录"))
     }
 }
 
