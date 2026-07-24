@@ -47,24 +47,15 @@ jobs:
 
           echo "Updated to $TAG_VERSION (code: $VERSION_CODE)"
 
-      - name: Show taoSync source info
-        run: |
-          cd taosync
-          echo "taoSync source (submodule)"
-          if [ -e ".git" ]; then
-            echo "Commit: $(git log --pretty=format:'%h' -1)"
-            echo "Branch: $(git branch --show-current)"
-          fi
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
           cache: npm
-          cache-dependency-path: taosync/web/package-lock.json
+          cache-dependency-path: rustsync/web/package-lock.json
 
       - name: Build frontend
-        working-directory: taosync/web
+        working-directory: rustsync/web
         run: |
           VERSION=${{ steps.version.outputs.version }}
           sed -i "s/__version_placeholder__/$VERSION/g" src/locales/zh-CN.yaml
@@ -75,58 +66,11 @@ jobs:
 
       - name: Prepare frontend for packaging
         run: |
-          cd taosync
+          cd rustsync
           rm -rf front
           cp -r web/dist front
           test -f front/index.html
           echo "Frontend copied to front/"
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-
-      - name: Build taosync with PyInstaller + StaticX (ARM64)
-        run: |
-          docker run --rm \
-            --platform linux/arm64 \
-            -v "$(pwd)/taosync:/app" \
-            -w /app \
-            arm64v8/python:3.11-slim-bullseye \
-            sh -c '
-              set -e
-              apt-get update
-              apt-get install -y --no-install-recommends \
-                build-essential \
-                zlib1g-dev \
-                patchelf \
-                binutils \
-                zip
-              rm -rf /var/lib/apt/lists/*
-
-              python -m pip install --upgrade pip
-              python -m pip install setuptools wheel scons hatchling
-              python -m pip install --no-build-isolation "pyinstaller>=6,<7" staticx
-              python -m pip install -r requirements.txt
-
-              export LD_LIBRARY_PATH="/usr/local/lib:/usr/lib/aarch64-linux-gnu"
-              python -m PyInstaller taoSync.spec \
-                --distpath /app/dist/arm64 \
-                --workpath /app/build/arm64 \
-                --noconfirm
-
-              staticx "/app/dist/arm64/taoSync" "/app/dist/arm64/taoSync_StaticX"
-              mv -f "/app/dist/arm64/taoSync_StaticX" "/app/dist/arm64/taoSync"
-              chmod 755 "/app/dist/arm64/taoSync"
-              echo "taoSync built successfully"
-            '
-
-      - name: Copy binary to system directory
-        run: |
-          mkdir -p system/bin
-          cp -f taosync/dist/arm64/taoSync system/bin/taosync
-          chmod 755 system/bin/taosync
-          echo "taoSync binary copied to system/bin/taosync"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -141,7 +85,7 @@ jobs:
       - name: Copy frontend to Rust static directory
         run: |
           mkdir -p server/static
-          cp -r taosync/front/* server/static/
+          cp -r rustsync/front/* server/static/
           echo "Frontend copied to server/static/"
 
       - name: Build Rust server (aarch64)
@@ -152,24 +96,19 @@ jobs:
           cp target/aarch64-linux-android/release/rustsync-server ../system/bin/rustsync_server
           echo "Rust binary built: rustsync_server"
 
-      - name: Package Rust static files for Magisk
+      - name: Package static files for Magisk
         run: |
           mkdir -p static
-          cp -r taosync/front/* static/
+          cp -r rustsync/front/* static/
           echo "Static files packaged for Magisk module"
 
       - name: Verify build artifact
         run: |
-          if [ ! -f "system/bin/rustsync_server" ] && [ ! -f "system/bin/taosync" ]; then
-            echo "::error::构建产物不存在 (Rust 和 Python 二进制均缺失)"
+          if [ ! -f "system/bin/rustsync_server" ]; then
+            echo "::error::Rust 二进制构建产物不存在"
             exit 1
           fi
-          if [ -f "system/bin/rustsync_server" ]; then
-            echo "Rust 二进制已构建: system/bin/rustsync_server"
-          fi
-          if [ -f "system/bin/taosync" ]; then
-            echo "Python 二进制已构建: system/bin/taosync"
-          fi
+          echo "Rust 二进制已构建: system/bin/rustsync_server"
           if [ -d "static" ] && [ "$(ls -A static 2>/dev/null)" ]; then
             echo "前端静态文件已打包"
           fi
@@ -183,7 +122,7 @@ jobs:
             -x ".github/*" \
             -x ".gitignore" \
             -x ".gitmodules" \
-            -x "taosync/*" \
+            -x "rustsync/*" \
             -x "server/src/*" \
             -x "server/target/*" \
             -x "server/Cargo.*"
@@ -202,7 +141,7 @@ jobs:
           body: |
             ## RustSync ${{ steps.version.outputs.version }}
 
-            基于 taoSync 源码编译的 Magisk 模块，开机自启动 RustSync 同步服务。
+            Rust 重写版 Magisk 模块，开机自启动 RustSync 同步服务。
 
             ### 功能
             - 开机自启动 RustSync 同步服务
@@ -210,7 +149,6 @@ jobs:
             - Web 管理面板 (端口 8023)
             - 默认密码 `admin`
             - 支持 Magisk v20.4+
-            - 双版本支持：Rust (rustsync) + Python (taosync)
 
             ### 安装
             1. 下载 `RustSync-Magisk-${{ steps.version.outputs.version }}.zip`

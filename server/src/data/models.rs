@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 // ==================== 引擎 / 存储挂载 ====================
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Engine {
     pub id: i64,
     pub remark: Option<String>,
@@ -22,6 +23,7 @@ fn default_engine_type() -> String {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineRequest {
     pub remark: Option<String>,
     pub url: String,
@@ -32,6 +34,7 @@ pub struct EngineRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageMount {
     pub id: i64,
     pub engine_id: i64,
@@ -45,6 +48,7 @@ pub struct StorageMount {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageMountRequest {
     pub engine_id: i64,
     pub name: String,
@@ -61,6 +65,7 @@ fn default_enabled() -> bool {
 // ==================== 作业 ====================
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Job {
     pub id: i64,
     pub enable: bool,
@@ -93,6 +98,7 @@ pub struct Job {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JobRequest {
     pub enable: Option<bool>,
     pub remark: Option<String>,
@@ -132,6 +138,7 @@ pub struct JobRequest {
 // ==================== 任务 ====================
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct JobTask {
     pub id: i64,
     pub job_id: i64,
@@ -143,6 +150,7 @@ pub struct JobTask {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct JobTaskItem {
     pub id: i64,
     pub task_id: i64,
@@ -163,6 +171,7 @@ pub struct JobTaskItem {
 // ==================== 通知 ====================
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Notify {
     pub id: i64,
     pub enable: bool,
@@ -172,6 +181,7 @@ pub struct Notify {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NotifyRequest {
     #[serde(default = "default_enabled")]
     pub enable: bool,
@@ -182,6 +192,7 @@ pub struct NotifyRequest {
 // ==================== 用户 ====================
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: i64,
     pub user_name: String,
@@ -191,6 +202,7 @@ pub struct User {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserInfo {
     pub id: i64,
     pub user_name: String,
@@ -198,18 +210,21 @@ pub struct UserInfo {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginRequest {
     pub user_name: String,
     pub passwd: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChangePasswordRequest {
     pub old_passwd: String,
     pub passwd: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResetPasswordRequest {
     pub user_name: String,
     pub key: String,
@@ -220,6 +235,7 @@ pub struct ResetPasswordRequest {
 // ==================== 分页 ====================
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageRequest {
     #[serde(default = "default_page_num")]
     pub page_num: i32,
@@ -235,6 +251,7 @@ fn default_page_size() -> i32 {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageResult<T: Serialize> {
     pub list: Vec<T>,
     pub total: i64,
@@ -245,6 +262,7 @@ pub struct PageResult<T: Serialize> {
 // ==================== 语言 ====================
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LanguageRequest {
     pub language: String,
 }

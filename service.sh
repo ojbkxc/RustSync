@@ -22,9 +22,9 @@ mkdir -p "$TMP_DIR"
 chmod 1777 "$TMP_DIR"
 export TMPDIR="$TMP_DIR"
 
-# 创建 /tmp 符号链接指向数据分区（PyInstaller 硬编码了 /tmp 路径）
+# 创建 /tmp 符号链接指向数据分区
 if [ -L /tmp ]; then
-  link_target=$(readlink /tmp)
+  link_target=$(readlink /tmp 2>/dev/null)
   if [ "$link_target" != "$TMP_DIR" ]; then
     rm -f /tmp
     ln -s "$TMP_DIR" /tmp
@@ -41,12 +41,10 @@ fi
 
 log "=== service.sh 启动 ==="
 
-# 查找 rustsync 二进制（兼容多种位置）
+# 查找 rustsync 二进制
 RUSTSYNC_BIN=""
 if [ -f "$MODDIR/rustsync_bin" ]; then
   RUSTSYNC_BIN="$MODDIR/rustsync_bin"
-elif [ -f "/system/bin/taosync" ]; then
-  RUSTSYNC_BIN="/system/bin/taosync"
 else
   log "错误: 未找到 RustSync 二进制文件"
   exit 1
@@ -55,7 +53,6 @@ fi
 chmod 755 "$RUSTSYNC_BIN" 2>/dev/null
 log "二进制: $RUSTSYNC_BIN"
 log "数据目录: $DATA_DIR"
-log "/tmp -> $(readlink /tmp)"
 
 # 启动函数
 start_rustsync() {
@@ -65,14 +62,14 @@ start_rustsync() {
 
   # 设置环境变量
   export TZ=Asia/Shanghai
-  export TAO_PASSWORD=admin
-  export TAO_PORT=8023
-  export TAO_EXPIRES=2
-  export TAO_LOG_LEVEL=1
-  export TAO_CONSOLE_LEVEL=2
-  export TAO_LOG_SAVE=7
-  export TAO_TASK_SAVE=0
-  export TAO_TASK_TIMEOUT=72
+  export RUSTSYNC_PASSWORD=admin
+  export RUSTSYNC_PORT=8023
+  export RUSTSYNC_EXPIRES=2
+  export RUSTSYNC_LOG_LEVEL=1
+  export RUSTSYNC_CONSOLE_LEVEL=2
+  export RUSTSYNC_LOG_SAVE=7
+  export RUSTSYNC_TASK_SAVE=0
+  export RUSTSYNC_TASK_TIMEOUT=72
 
   # CWD = CONF_DIR
   cd "$CONF_DIR"

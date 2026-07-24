@@ -1,17 +1,12 @@
 # RustSync
 
-基于 [taoSync](https://github.com/dr34m/taosync) 源码编译的 Magisk 模块，在 Android 设备上开机自启动 RustSync 同步服务。
-
-taoSync 是一个文件同步管理工具，支持多存储之间的文件同步、备份、迁移等操作。
-
-> **v2.0**: 新增 Rust 重写版服务端 (`rustsync_server`)，更小更快。安装时自动优先使用 Rust 版本，回退到 Python 版本。
+Rust 重写版文件同步管理服务，Magisk 模块形式在 Android 设备上开机自启动。
 
 ## 功能特性
 
 - **开机自启** — 刷入后重启自动运行，无需任何操作
 - **进程守护** — 每 30 秒检测进程状态，崩溃自动重启
 - **Magisk 开关控制** — 关闭模块 30 秒内自动停服，无需重启；重新开启后重启恢复
-- **双版本支持** — 优先使用 Rust 编译版本，回退 Python 版本
 - **默认密码** — 首次启动密码为 `admin`
 - **兼容 Magisk v20.4+**
 
@@ -34,18 +29,16 @@ taoSync 是一个文件同步管理工具，支持多存储之间的文件同步
 
 ### 环境变量
 
-启动时通过以下环境变量配置（参照 [taoSync Dockerfile](https://github.com/dr34m/taosync/blob/main/Dockerfile)）：
-
 | 变量 | 值 | 说明 |
 |------|-----|------|
-| `TAO_PASSWORD` | `admin` | 管理员密码 |
-| `TAO_PORT` | `8023` | Web 服务端口 |
-| `TAO_EXPIRES` | `2` | 登录过期时间（小时） |
-| `TAO_LOG_LEVEL` | `1` | 日志级别 |
-| `TAO_CONSOLE_LEVEL` | `2` | 控制台日志级别 |
-| `TAO_LOG_SAVE` | `7` | 日志保留天数 |
-| `TAO_TASK_SAVE` | `0` | 任务记录保留天数 |
-| `TAO_TASK_TIMEOUT` | `72` | 任务超时时间（小时） |
+| `RUSTSYNC_PASSWORD` | `admin` | 管理员密码 |
+| `RUSTSYNC_PORT` | `8023` | Web 服务端口 |
+| `RUSTSYNC_EXPIRES` | `2` | 登录过期时间（小时） |
+| `RUSTSYNC_LOG_LEVEL` | `1` | 日志级别 |
+| `RUSTSYNC_CONSOLE_LEVEL` | `2` | 控制台日志级别 |
+| `RUSTSYNC_LOG_SAVE` | `7` | 日志保留天数 |
+| `RUSTSYNC_TASK_SAVE` | `0` | 任务记录保留天数 |
+| `RUSTSYNC_TASK_TIMEOUT` | `72` | 任务超时时间（小时） |
 
 ## 目录
 
@@ -56,16 +49,15 @@ taoSync 是一个文件同步管理工具，支持多存储之间的文件同步
 
 ## 构建
 
-GitHub Actions 自动构建两种版本：
+GitHub Actions 自动构建：
 
-| 版本 | 二进制 | 编译方式 |
-|------|--------|----------|
-| Python | `system/bin/taosync` | PyInstaller + StaticX (arm64) |
-| Rust | `system/bin/rustsync_server` | cargo-ndk (aarch64) |
+| 组件 | 编译方式 |
+|------|----------|
+| 服务端 | cargo-ndk (aarch64-linux-android) |
+| 前端 | npm (Vue) |
 
 - 推送 `v*` 标签自动触发发版
 - 或手动触发 "Build & Release" 工作流
-- 安装时自动优先使用 Rust 版本
 
 ## 常见问题
 

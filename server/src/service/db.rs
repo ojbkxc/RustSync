@@ -367,12 +367,15 @@ fn ensure_builtin_engine(conn: &Connection) -> anyhow::Result<()> {
             createTime INTEGER DEFAULT (strftime('%s', 'now')),
             UNIQUE (url, userName));"
     )?;
-    for col in &["engineType", "systemKey", "protected"] {
-        let _ = conn.execute(
-            &format!("ALTER TABLE alist_list ADD COLUMN {} TEXT DEFAULT '{}'",
-                col, if *col == "engineType" { "alist" } else if *col == "protected" { "0" } else { "" }),
-            [],
-        );
+    // 仅在列不存在时添加，避免每次启动都执行 ALTER TABLE
+    let existing_cols = get_table_columns(conn, "alist_list")?;
+    for (col, default_val) in &[("engineType", "alist"), ("systemKey", ""), ("protected", "0")] {
+        if !existing_cols.iter().any(|c| c == col) {
+            conn.execute(
+                &format!("ALTER TABLE alist_list ADD COLUMN {} TEXT DEFAULT '{}'", col, default_val),
+                [],
+            )?;
+        }
     }
     let _ = conn.execute("UPDATE alist_list SET engineType='alist' WHERE engineType IS NULL", []);
     let _ = conn.execute(
@@ -426,4 +429,15 @@ pub fn generate_random_password() -> String {
 /// 获取当前 Unix 时间戳
 pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
+}
+
+/// 获取表的所有列名
+fn get_table_columns(conn: &Connection, table: &str) -> anyhow::Result<Vec<String>> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", table))?;
+    let cols: Vec<String> = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|e| anyhow::anyhow!("{}", e))?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(cols)
 }

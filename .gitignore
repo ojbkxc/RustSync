@@ -10,5 +10,6 @@ system/bin/
 
 # Node modules and frontend build
 node_modules/
-web/dist/
-front/
+
+# Rust build artifacts
+server/target/

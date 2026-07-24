@@ -18,7 +18,7 @@ pub const DEFAULT_TASK_TIMEOUT: u32 = 72;
 
 /// 获取实际监听端口
 pub fn get_listen_port() -> u16 {
-    std::env::var("TAO_PORT")
+    std::env::var("RUSTSYNC_PORT")
         .ok()
         .and_then(|s| s.parse::<u16>().ok())
         .unwrap_or(DEFAULT_PORT)
@@ -40,7 +40,8 @@ pub fn get_data_dir() -> String {
 fn get_or_create_secret_key(data_dir: &str) -> String {
     let key_path = Path::new(data_dir).join("secret.key");
     if key_path.exists() {
-        std::fs::read_to_string(&key_path).unwrap_or_default()
+        // trim 处理 Python 版可能写入的尾随换行符，确保密码哈希一致性
+        std::fs::read_to_string(&key_path).unwrap_or_default().trim().to_string()
     } else {
         let key = generate_random_string(256);
         let _ = std::fs::create_dir_all(data_dir);
@@ -105,25 +106,25 @@ impl Config {
         let default = Self::default();
         Self {
             password: env_password(),
-            port: env_or("TAO_PORT", &default.port.to_string())
+            port: env_or("RUSTSYNC_PORT", &default.port.to_string())
                 .parse()
                 .unwrap_or(default.port),
-            expires: env_or("TAO_EXPIRES", &default.expires.to_string())
+            expires: env_or("RUSTSYNC_EXPIRES", &default.expires.to_string())
                 .parse()
                 .unwrap_or(default.expires),
-            log_level: env_or("TAO_LOG_LEVEL", &default.log_level.to_string())
+            log_level: env_or("RUSTSYNC_LOG_LEVEL", &default.log_level.to_string())
                 .parse()
                 .unwrap_or(default.log_level),
-            console_level: env_or("TAO_CONSOLE_LEVEL", &default.console_level.to_string())
+            console_level: env_or("RUSTSYNC_CONSOLE_LEVEL", &default.console_level.to_string())
                 .parse()
                 .unwrap_or(default.console_level),
-            log_save: env_or("TAO_LOG_SAVE", &default.log_save.to_string())
+            log_save: env_or("RUSTSYNC_LOG_SAVE", &default.log_save.to_string())
                 .parse()
                 .unwrap_or(default.log_save),
-            task_save: env_or("TAO_TASK_SAVE", &default.task_save.to_string())
+            task_save: env_or("RUSTSYNC_TASK_SAVE", &default.task_save.to_string())
                 .parse()
                 .unwrap_or(default.task_save),
-            task_timeout: env_or("TAO_TASK_TIMEOUT", &default.task_timeout.to_string())
+            task_timeout: env_or("RUSTSYNC_TASK_TIMEOUT", &default.task_timeout.to_string())
                 .parse()
                 .unwrap_or(default.task_timeout),
             timezone: env_or("TZ", &default.timezone),
@@ -139,10 +140,10 @@ fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
 
-/// 获取密码，支持 TAO_PASSWORD 和 TAO_PASSWD 两个环境变量（与 Python 一致）
+/// 获取密码，支持 RUSTSYNC_PASSWORD 和 RUSTSYNC_PASSWD 两个环境变量（与 Python 一致）
 fn env_password() -> String {
-    std::env::var("TAO_PASSWORD")
-        .or_else(|_| std::env::var("TAO_PASSWD"))
+    std::env::var("RUSTSYNC_PASSWORD")
+        .or_else(|_| std::env::var("RUSTSYNC_PASSWD"))
         .unwrap_or_else(|_| DEFAULT_PASSWORD.to_string())
 }
 

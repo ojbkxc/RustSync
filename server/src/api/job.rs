@@ -202,12 +202,12 @@ pub async fn job_post(
         let month = body.get("month").and_then(|v| v.as_str()).map(|s| s.to_string());
         let day = body.get("day").and_then(|v| v.as_str()).map(|s| s.to_string());
         let week = body.get("week").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let day_of_week = body.get("day_of_week").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let day_of_week = body.get("dayOfWeek").and_then(|v| v.as_str()).map(|s| s.to_string());
         let hour = body.get("hour").and_then(|v| v.as_str()).map(|s| s.to_string());
         let minute = body.get("minute").and_then(|v| v.as_str()).map(|s| s.to_string());
         let second = body.get("second").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let start_date = body.get("start_date").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let end_date = body.get("end_date").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let start_date = body.get("startDate").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let end_date = body.get("endDate").and_then(|v| v.as_str()).map(|s| s.to_string());
         let exclude = body.get("exclude").and_then(|v| v.as_str()).map(|s| s.to_string());
         let min_file_size = body.get("minFileSize").and_then(|v| v.as_i64());
         let max_file_size = body.get("maxFileSize").and_then(|v| v.as_i64());
@@ -250,12 +250,12 @@ pub async fn job_post(
         let month = body.get("month").and_then(|v| v.as_str()).map(|s| s.to_string());
         let day = body.get("day").and_then(|v| v.as_str()).map(|s| s.to_string());
         let week = body.get("week").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let day_of_week = body.get("day_of_week").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let day_of_week = body.get("dayOfWeek").and_then(|v| v.as_str()).map(|s| s.to_string());
         let hour = body.get("hour").and_then(|v| v.as_str()).map(|s| s.to_string());
         let minute = body.get("minute").and_then(|v| v.as_str()).map(|s| s.to_string());
         let second = body.get("second").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let start_date = body.get("start_date").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let end_date = body.get("end_date").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let start_date = body.get("startDate").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let end_date = body.get("endDate").and_then(|v| v.as_str()).map(|s| s.to_string());
         let exclude = body.get("exclude").and_then(|v| v.as_str()).map(|s| s.to_string());
         let min_file_size = body.get("minFileSize").and_then(|v| v.as_i64());
         let max_file_size = body.get("maxFileSize").and_then(|v| v.as_i64());
@@ -336,6 +336,13 @@ pub async fn job_put(
                 ) {
                     Ok(_) => {
                         let task_id = db.last_insert_rowid();
+                        drop(db);
+                        // 在后台异步执行同步
+                        tokio::spawn(async move {
+                            if let Err(e) = crate::service::sync_engine::run_sync_for_job(job_id).await {
+                                tracing::error!("手动执行作业 {} 失败: {}", job_id, e);
+                            }
+                        });
                         Json(ApiResponse::ok_msg(
                             serde_json::json!({"taskId": task_id}),
                             "作业已开始执行",
@@ -370,6 +377,16 @@ pub async fn job_put(
                         tasks.push(db.last_insert_rowid());
                     }
                 }
+                drop(db);
+                // 在后台异步执行所有作业的同步
+                let job_ids_clone = job_ids.clone();
+                tokio::spawn(async move {
+                    for job_id in job_ids_clone {
+                        if let Err(e) = crate::service::sync_engine::run_sync_for_job(job_id).await {
+                            tracing::error!("批量执行作业 {} 失败: {}", job_id, e);
+                        }
+                    }
+                });
                 Json(ApiResponse::ok_msg(
                     serde_json::json!({"tasks": tasks, "count": tasks.len()}),
                     &format!("已启动 {} 个作业", tasks.len()),

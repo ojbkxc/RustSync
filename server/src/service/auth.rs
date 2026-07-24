@@ -70,7 +70,7 @@ pub type SharedSessionManager = Arc<SessionManager>;
 pub async fn login(
     State(state): State<crate::state::SharedState>,
     Json(req): Json<LoginRequest>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     let result = {
         let db = state.db.lock().unwrap();
         db.query_row(
@@ -104,7 +104,7 @@ pub async fn login(
                 let response = Json(ApiResponse::ok(user_return));
                 // 设置 Cookie（与 Python set_signed_cookie 行为一致）
                 let cookie = format!(
-                    "tao_sync={}; Path=/; HttpOnly; Max-Age={}",
+                    "rust_sync={}; Path=/; HttpOnly; SameSite=Lax; Max-Age={}",
                     token,
                     state.config.expires as i64 * 86400
                 );
@@ -180,7 +180,7 @@ pub async fn logout(headers: axum::http::HeaderMap) -> impl IntoResponse {
         let session_mgr = get_session_manager();
         session_mgr.remove_session(&session).await;
     }
-    let cookie = "tao_sync=; Path=/; HttpOnly; Max-Age=0";
+    let cookie = "rust_sync=; Path=/; HttpOnly; Max-Age=0";
     (
         StatusCode::OK,
         [(header::SET_COOKIE, cookie)],
@@ -281,8 +281,8 @@ fn extract_token(headers: &axum::http::HeaderMap) -> Option<String> {
         if let Ok(cookie_str) = cookie.to_str() {
             for part in cookie_str.split(';') {
                 let part = part.trim();
-                if part.starts_with("tao_sync=") {
-                    return Some(part["tao_sync=".len()..].to_string());
+                if part.starts_with("rust_sync=") {
+                    return Some(part["rust_sync=".len()..].to_string());
                 }
             }
         }
