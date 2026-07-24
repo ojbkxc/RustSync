@@ -149,7 +149,7 @@ pub async fn reset_password(
                 return Json(ApiResponse::<()>::err("密钥错误"));
             }
             let new_passwd = req.passwd.as_deref().unwrap_or("");
-            let new_passwd = if new_passwd.is_empty() {
+            if new_passwd.is_empty() {
                 // 未提供新密码则生成随机密码
                 let pwd = crate::service::db::generate_random_password();
                 let hash = hash_password(&pwd);
@@ -160,18 +160,17 @@ pub async fn reset_password(
                     rusqlite::params![hash, user_id],
                 );
                 return Json(ApiResponse::ok(json!({"passwd": pwd})));
-            } else {
-                let hash = hash_password(new_passwd.trim());
-                drop(db);
-                let db = state.db.lock().unwrap();
-                let _ = db.execute(
-                    "UPDATE user_list SET passwd=? WHERE id=?",
-                    rusqlite::params![hash, user_id],
-                );
-                Json(ApiResponse::ok_msg(json!({}), "密码重置成功"))
             }
+            let hash = hash_password(new_passwd.trim());
+            drop(db);
+            let db = state.db.lock().unwrap();
+            let _ = db.execute(
+                "UPDATE user_list SET passwd=? WHERE id=?",
+                rusqlite::params![hash, user_id],
+            );
+            Json(ApiResponse::ok_msg(json!({}), "密码重置成功"))
         }
-        Err(_) => Json(ApiResponse::<()>::err("用户不存在")),
+        Err(_) => Json(ApiResponse::<serde_json::Value>::err("用户不存在")),
     }
 }
 

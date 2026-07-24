@@ -136,7 +136,7 @@ pub async fn init_all_jobs(state: &crate::state::SharedState) -> anyhow::Result<
              FROM job WHERE enable=1 AND isCron != 2"
         )?;
 
-        stmt.query_map([], |row| {
+        let x = stmt.query_map([], |row| {
             Ok(Job {
                 id: row.get(0)?,
                 enable: row.get::<_, i32>(1)? != 0,
@@ -167,7 +167,8 @@ pub async fn init_all_jobs(state: &crate::state::SharedState) -> anyhow::Result<
                 max_file_size: row.get(26)?,
                 create_time: row.get(27)?,
             })
-        })?.filter_map(|r| r.ok()).collect()
+        })?.filter_map(|r| r.ok()).collect();
+        x
     }; // MutexGuard dropped here, safe to .await below
 
     let scheduler = crate::service::scheduler::get_scheduler();

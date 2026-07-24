@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{LazyLock, RwLock};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LanguagePack {
@@ -8,8 +8,8 @@ pub struct LanguagePack {
     pub entries: HashMap<String, String>,
 }
 
-static CURRENT_LANG: RwLock<String> = RwLock::new(String::new());
-static LANG_PACKS: RwLock<HashMap<String, LanguagePack>> = RwLock::new(HashMap::new());
+static CURRENT_LANG: LazyLock<RwLock<String>> = LazyLock::new(|| RwLock::new(String::new()));
+static LANG_PACKS: LazyLock<RwLock<HashMap<String, LanguagePack>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// 加载所有语言包
 pub fn load_languages() -> anyhow::Result<()> {
