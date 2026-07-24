@@ -2,6 +2,7 @@ tornado==6.5.5
 requests==2.33.0
 charset-normalizer>=3,<4
 APScheduler==3.11.0
+tzdata>=2025.2
 configparser==7.2.0
 pathspec==0.12.1
 PyYAML==6.0.3

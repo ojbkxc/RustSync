@@ -4,17 +4,18 @@ from PyInstaller.utils.hooks import collect_all
 
 
 charset_datas, charset_binaries, charset_hiddenimports = collect_all('charset_normalizer')
+tzdata_datas, tzdata_binaries, tzdata_hiddenimports = collect_all('tzdata')
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=charset_binaries,
+    binaries=charset_binaries + tzdata_binaries,
     datas=[
         ('web/dist/', 'front'),
         ('locales/', 'locales'),
-    ] + charset_datas,
-    hiddenimports=charset_hiddenimports,
+    ] + charset_datas + tzdata_datas,
+    hiddenimports=charset_hiddenimports + tzdata_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

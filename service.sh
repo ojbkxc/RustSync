@@ -64,6 +64,7 @@ start_taosync() {
   chmod 1777 "$TMP_DIR"
 
   # 设置环境变量
+  export TZ=Asia/Shanghai
   export TAO_PASSWORD=admin
   export TAO_PORT=8023
   export TAO_EXPIRES=2
