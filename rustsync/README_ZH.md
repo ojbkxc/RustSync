@@ -26,8 +26,8 @@
     <a href="https://github.com/ojbkxc/RustSync/releases">
       <img src="https://img.shields.io/github/downloads/ojbkxc/RustSync/total?color=%239F7AEA&logo=github" alt="Downloads" />
     </a>
-    <a href="https://hub.docker.com/r/dr34m/rust-sync">
-      <img src="https://img.shields.io/docker/pulls/dr34m/rust-sync?color=%2348BB78&logo=docker&label=pulls" alt="DockerHub" />
+    <a href="https://hub.docker.com/r/ojbkxc/rustsync">
+      <img src="https://img.shields.io/docker/pulls/ojbkxc/rustsync?color=%2348BB78&logo=docker&label=pulls" alt="DockerHub" />
     </a>
   </div>
 </div>
@@ -38,7 +38,7 @@
 
 本程序开发之初，主要是为了保存桃桃成长的照片，故名`RustSync`
 
-**如果好用，请Star！非常感谢！**  [GitHub](https://github.com/ojbkxc/RustSync) [DockerHub](https://hub.docker.com/r/dr34m/rust-sync)
+**如果好用，请Star！非常感谢！**  [GitHub](https://github.com/ojbkxc/RustSync) [DockerHub](https://hub.docker.com/r/ojbkxc/rustsync)
 
 <details>
 
@@ -166,7 +166,7 @@ SFTP v3 无法在所有服务端路径竞态下提供通用的“禁止跟随链
 * docker
 
 ```sh
-docker run -d --restart=always -p 8023:8023 -v /opt/data:/app/data --name=rustSync dr34m/rust-sync:latest
+docker run -d --restart=always -p 8023:8023 -v /opt/data:/app/data --name=rustSync ojbkxc/rustsync:latest
 ```
 
 或docker-compose
@@ -176,7 +176,7 @@ version: '3.8'
 
 services:
   rust-sync:
-    image: dr34m/rust-sync:latest
+    image: ojbkxc/rustsync:latest
     container_name: rustSync
     restart: always
     ports:
@@ -207,7 +207,7 @@ services:
       - ./openlist-data:/opt/openlist/data
 
   rust-sync:
-    image: dr34m/rust-sync:latest
+    image: ojbkxc/rustsync:latest
     container_name: rustSync
     restart: unless-stopped
     depends_on:
@@ -282,7 +282,7 @@ task_timeout=72
 
 历史记录在[这里](https://github.com/ojbkxc/RustSync/tree/main/doc/changelog)；
 
-如想体验研发中的版本(可能存在明显错误或严重bug，不建议小白尝试)，可以尝试到[DockerHub](https://hub.docker.com/r/dr34m/rust-sync)或[Release](https://github.com/ojbkxc/RustSync/releases)找最新的含`dev`或`pre`的tag，例如`v0.1.0-dev-build0`
+如想体验研发中的版本(可能存在明显错误或严重bug，不建议小白尝试)，可以尝试到[DockerHub](https://hub.docker.com/r/ojbkxc/rustsync)或[Release](https://github.com/ojbkxc/RustSync/releases)找最新的含`dev`或`pre`的tag，例如`v0.1.0-dev-build0`
 
 ### 规划中（随时改变or因太难不做了，概不负责）
 

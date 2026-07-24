@@ -26,8 +26,8 @@
     <a href="https://github.com/ojbkxc/RustSync/releases">
       <img src="https://img.shields.io/github/downloads/ojbkxc/RustSync/total?color=%239F7AEA&logo=github" alt="Downloads" />
     </a>
-    <a href="https://hub.docker.com/r/dr34m/rust-sync">
-      <img src="https://img.shields.io/docker/pulls/dr34m/rust-sync?color=%2348BB78&logo=docker&label=pulls" alt="Docker Hub pulls" />
+    <a href="https://hub.docker.com/r/ojbkxc/rustsync">
+      <img src="https://img.shields.io/docker/pulls/ojbkxc/rustsync?color=%2348BB78&logo=docker&label=pulls" alt="Docker Hub pulls" />
     </a>
   </div>
 </div>
@@ -38,7 +38,7 @@ Taotao is my daughter's nickname.
 
 I originally created this project to preserve photos of Taotao as she grows up, hence the name `RustSync`.
 
-**If you find RustSync useful, please star the repository. Thank you!** [GitHub](https://github.com/ojbkxc/RustSync) [Docker Hub](https://hub.docker.com/r/dr34m/rust-sync)
+**If you find RustSync useful, please star the repository. Thank you!** [GitHub](https://github.com/ojbkxc/RustSync) [Docker Hub](https://hub.docker.com/r/ojbkxc/rustsync)
 
 <details>
 
@@ -166,7 +166,7 @@ Download the executable for your platform from [Releases](https://github.com/ojb
 * Docker
 
 ```sh
-docker run -d --restart=always -p 8023:8023 -v /opt/data:/app/data --name=rustsync dr34m/rust-sync:latest
+docker run -d --restart=always -p 8023:8023 -v /opt/data:/app/data --name=rustsync ojbkxc/rustsync:latest
 ```
 
 Or use Docker Compose:
@@ -176,7 +176,7 @@ version: '3.8'
 
 services:
   rust-sync:
-    image: dr34m/rust-sync:latest
+    image: ojbkxc/rustsync:latest
     container_name: rustsync
     restart: always
     ports:
@@ -207,7 +207,7 @@ services:
       - ./openlist-data:/opt/openlist/data
 
   rust-sync:
-    image: dr34m/rust-sync:latest
+    image: ojbkxc/rustsync:latest
     container_name: rustsync
     restart: unless-stopped
     depends_on:
@@ -284,7 +284,7 @@ This file does not exist by default. To use it, create `config.ini` in the `data
 
 The changelog is available [here](https://github.com/ojbkxc/RustSync/tree/main/doc/changelog).
 
-To try a development build, look for the latest tag containing `dev` or `pre` on [Docker Hub](https://hub.docker.com/r/dr34m/rust-sync) or [Releases](https://github.com/ojbkxc/RustSync/releases), such as `v0.1.0-dev-build0`. Development builds may contain obvious errors or serious bugs and are not recommended for beginners.
+To try a development build, look for the latest tag containing `dev` or `pre` on [Docker Hub](https://hub.docker.com/r/ojbkxc/rustsync) or [Releases](https://github.com/ojbkxc/RustSync/releases), such as `v0.1.0-dev-build0`. Development builds may contain obvious errors or serious bugs and are not recommended for beginners.
 
 ### Planned (subject to change or cancellation if implementation proves too difficult; no promises)
 
