@@ -146,7 +146,7 @@ pub async fn reset_password(
         Ok((user_id, _)) => {
             // 验证 key 是否与 secret.key 一致
             if req.key.trim() != state.config.password_str {
-                return Json(ApiResponse::<()>::err("密钥错误"));
+                return Json(ApiResponse::<serde_json::Value>::err("密钥错误"));
             }
             let new_passwd = req.passwd.as_deref().unwrap_or("");
             if new_passwd.is_empty() {
@@ -246,7 +246,7 @@ pub async fn change_password(
             rusqlite::params![new_hash, session.user_id],
         ) {
             Ok(_) => Json(ApiResponse::ok_msg(json!({}), "密码修改成功")),
-            Err(e) => Json(ApiResponse::<()>::err(&format!("修改失败: {}", e))),
+            Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("修改失败: {}", e))),
         }
     } else {
         Json(ApiResponse::<()>::err_code(401, "未登录"))

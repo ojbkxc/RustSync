@@ -1,7 +1,6 @@
 use md5::{Digest, Md5};
 use rusqlite::Connection;
 use crate::config::Config;
-use crate::data::models::User;
 
 /// 当前数据库版本号（与 Python 版保持一致）
 const DB_VERSION: i32 = 260718;

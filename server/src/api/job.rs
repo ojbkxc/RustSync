@@ -357,6 +357,7 @@ pub async fn job_put(
                 if job_ids.is_empty() {
                     return Json(ApiResponse::err(&i18n::t("no_job_for_run")));
                 }
+                drop(stmt);
                 drop(db);
                 let db = state.db.lock().unwrap();
                 let ts = now_ts();

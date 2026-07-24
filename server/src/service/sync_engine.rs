@@ -6,40 +6,40 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
 
     // 从数据库加载作业配置
     let state = crate::state::get_global_state();
-    let db = state.db.lock().unwrap();
-
-    let job = db.query_row(
-        "SELECT id, srcPath, dstPath, alistId, method, sourceMode, exclude, minFileSize, maxFileSize
-         FROM job WHERE id=?",
-        [job_id],
-        |row| {
-            Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, Option<i64>>(3)?,
-                row.get::<_, i32>(4)?,
-                row.get::<_, i32>(5)?,
-                row.get::<_, Option<String>>(6)?,
-                row.get::<_, Option<i64>>(7)?,
-                row.get::<_, Option<i64>>(8)?,
-            ))
-        },
-    )?;
-
-    drop(db);
+    let job = {
+        let db = state.db.lock().unwrap();
+        db.query_row(
+            "SELECT id, srcPath, dstPath, alistId, method, sourceMode, exclude, minFileSize, maxFileSize
+             FROM job WHERE id=?",
+            [job_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<i64>>(3)?,
+                    row.get::<_, i32>(4)?,
+                    row.get::<_, i32>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, Option<i64>>(7)?,
+                    row.get::<_, Option<i64>>(8)?,
+                ))
+            },
+        )?
+    }; // MutexGuard dropped here
 
     let (_id, src_path, dst_path, _alist_id, method, source_mode, exclude, min_size, max_size) = job;
 
     // 创建任务记录
-    let db = state.db.lock().unwrap();
-    let ts = crate::service::db::now_ts();
-    db.execute(
-        "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
-        rusqlite::params![job_id, ts],
-    )?;
-    let task_id = db.last_insert_rowid();
-    drop(db);
+    let task_id = {
+        let db = state.db.lock().unwrap();
+        let ts = crate::service::db::now_ts();
+        db.execute(
+            "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
+            rusqlite::params![job_id, ts],
+        )?;
+        db.last_insert_rowid()
+    }; // MutexGuard dropped here
 
     tracing::info!("作业 {}: src={}, dst={}, method={}, taskId={}", job_id, src_path, dst_path, method, task_id);
 

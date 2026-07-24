@@ -216,7 +216,7 @@ pub async fn storage_get(
                 }
             }).await;
             match result {
-                Ok(Ok(files)) => Json(ApiResponse::ok(files)),
+                Ok(Ok(files)) => Json(ApiResponse::ok(serde_json::Value::Array(files))),
                 Ok(Err(e)) => Json(ApiResponse::err(&e)),
                 Err(e) => Json(ApiResponse::err(&format!("任务失败: {}", e))),
             }
