@@ -101,10 +101,10 @@ impl StorageDriver for LocalDriver {
 
     async fn read_file(&self, path: &str) -> anyhow::Result<Vec<u8>> {
         let full = self.full_path(path);
-        tokio::task::spawn_blocking(move || {
+        let data = tokio::task::spawn_blocking(move || {
             std::fs::read(&full)
         }).await??;
-        Ok(())
+        Ok(data)
     }
 
     async fn write_file(&self, path: &str, data: &[u8]) -> anyhow::Result<()> {

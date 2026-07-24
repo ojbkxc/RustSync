@@ -71,20 +71,22 @@ pub async fn login(
     State(state): State<crate::state::SharedState>,
     Json(req): Json<LoginRequest>,
 ) -> impl IntoResponse {
-    let db = state.db.read().await;
-    let result = db.query_row(
-        "SELECT id, userName, passwd, sqlVersion, createTime FROM user_list WHERE userName=?",
-        [&req.user_name],
-        |row| {
-            Ok(User {
-                id: row.get(0)?,
-                user_name: row.get(1)?,
-                passwd: row.get(2)?,
-                sql_version: row.get(3)?,
-                create_time: row.get(4)?,
-            })
-        },
-    );
+    let result = {
+        let db = state.db.lock().unwrap();
+        db.query_row(
+            "SELECT id, userName, passwd, sqlVersion, createTime FROM user_list WHERE userName=?",
+            [&req.user_name],
+            |row| {
+                Ok(User {
+                    id: row.get(0)?,
+                    user_name: row.get(1)?,
+                    passwd: row.get(2)?,
+                    sql_version: row.get(3)?,
+                    create_time: row.get(4)?,
+                })
+            },
+        )
+    }; // MutexGuard dropped here, safe to .await below
 
     match result {
         Ok(user) => {
@@ -133,7 +135,7 @@ pub async fn reset_password(
     State(state): State<crate::state::SharedState>,
     Json(req): Json<ResetPasswordRequest>,
 ) -> impl IntoResponse {
-    let db = state.db.read().await;
+    let db = state.db.lock().unwrap();
     let user = db.query_row(
         "SELECT id, userName FROM user_list WHERE userName=?",
         [&req.user_name],
@@ -152,7 +154,7 @@ pub async fn reset_password(
                 let pwd = crate::service::db::generate_random_password();
                 let hash = hash_password(&pwd);
                 drop(db);
-                let db = state.db.write().await;
+                let db = state.db.lock().unwrap();
                 let _ = db.execute(
                     "UPDATE user_list SET passwd=? WHERE id=?",
                     rusqlite::params![hash, user_id],
@@ -161,7 +163,7 @@ pub async fn reset_password(
             } else {
                 let hash = hash_password(new_passwd.trim());
                 drop(db);
-                let db = state.db.write().await;
+                let db = state.db.lock().unwrap();
                 let _ = db.execute(
                     "UPDATE user_list SET passwd=? WHERE id=?",
                     rusqlite::params![hash, user_id],
@@ -196,7 +198,7 @@ pub async fn get_user(
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     if let Some(session) = get_session_from_headers(&headers).await {
-        let db = state.db.read().await;
+        let db = state.db.lock().unwrap();
         let result = db.query_row(
             "SELECT id, createTime FROM user_list WHERE id=?",
             [session.user_id],
@@ -222,7 +224,7 @@ pub async fn change_password(
     Json(req): Json<ChangePasswordRequest>,
 ) -> impl IntoResponse {
     if let Some(session) = get_session_from_headers(&headers).await {
-        let db = state.db.read().await;
+        let db = state.db.lock().unwrap();
         let old_hash = hash_password(&req.old_passwd);
         let valid: bool = db
             .query_row(
@@ -239,7 +241,7 @@ pub async fn change_password(
 
         let new_hash = hash_password(&req.passwd);
         drop(db);
-        let db = state.db.write().await;
+        let db = state.db.lock().unwrap();
         match db.execute(
             "UPDATE user_list SET passwd=? WHERE id=?",
             rusqlite::params![new_hash, session.user_id],
@@ -298,10 +300,10 @@ fn extract_token(headers: &axum::http::HeaderMap) -> Option<String> {
 }
 
 /// 中间件：需要认证的请求
-pub async fn require_auth(
+pub async fn require_auth<B>(
     headers: axum::http::HeaderMap,
-    request: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
+    request: axum::http::Request<B>,
+    next: axum::middleware::Next<B>,
 ) -> axum::response::Response {
     if get_session_from_headers(&headers).await.is_some() {
         next.run(request).await

@@ -1,12 +1,13 @@
-use std::sync::{Arc, OnceLock};
-use tokio::sync::RwLock;
+use std::sync::{Arc, Mutex, OnceLock};
 use crate::config::Config;
 
 /// 应用全局共享状态
+/// 使用 std::sync::Mutex 而非 tokio::sync::RwLock
+/// 因为 rusqlite::Connection 包含 RefCell 不实现 Sync，
+/// 但 Mutex<T: Send> 是 Sync 的，符合 axum Router 要求。
 pub struct AppState {
     pub config: Config,
-    /// 数据库连接（用 RwLock 保护，因为 rusqlite 的 Connection 不是 Sync）
-    pub db: RwLock<rusqlite::Connection>,
+    pub db: Mutex<rusqlite::Connection>,
 }
 
 pub type SharedState = Arc<AppState>;
@@ -20,7 +21,7 @@ impl AppState {
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
         Ok(Arc::new(Self {
             config,
-            db: RwLock::new(db),
+            db: Mutex::new(db),
         }))
     }
 

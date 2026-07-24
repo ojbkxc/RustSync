@@ -105,25 +105,25 @@ impl Config {
         let default = Self::default();
         Self {
             password: env_password(),
-            port: env_or("TAO_PORT")
+            port: env_or("TAO_PORT", &default.port.to_string())
                 .parse()
                 .unwrap_or(default.port),
-            expires: env_or("TAO_EXPIRES")
+            expires: env_or("TAO_EXPIRES", &default.expires.to_string())
                 .parse()
                 .unwrap_or(default.expires),
-            log_level: env_or("TAO_LOG_LEVEL")
+            log_level: env_or("TAO_LOG_LEVEL", &default.log_level.to_string())
                 .parse()
                 .unwrap_or(default.log_level),
-            console_level: env_or("TAO_CONSOLE_LEVEL")
+            console_level: env_or("TAO_CONSOLE_LEVEL", &default.console_level.to_string())
                 .parse()
                 .unwrap_or(default.console_level),
-            log_save: env_or("TAO_LOG_SAVE")
+            log_save: env_or("TAO_LOG_SAVE", &default.log_save.to_string())
                 .parse()
                 .unwrap_or(default.log_save),
-            task_save: env_or("TAO_TASK_SAVE")
+            task_save: env_or("TAO_TASK_SAVE", &default.task_save.to_string())
                 .parse()
                 .unwrap_or(default.task_save),
-            task_timeout: env_or("TAO_TASK_TIMEOUT")
+            task_timeout: env_or("TAO_TASK_TIMEOUT", &default.task_timeout.to_string())
                 .parse()
                 .unwrap_or(default.task_timeout),
             timezone: env_or("TZ", &default.timezone),

@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::new_shared(config.clone())?;
 
     // 初始化数据库
-    let generated_password = service::db::init_database(&*state.db.read().await, &config)?;
+    let generated_password = service::db::init_database(&*state.db.lock().unwrap(), &config)?;
 
     // 初始化国际化
     service::i18n::load_languages()?;

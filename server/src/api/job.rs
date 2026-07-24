@@ -13,7 +13,7 @@ pub async fn job_get(
     State(state): State<crate::state::SharedState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let db = state.db.read().await;
+    let db = state.db.lock().unwrap();
 
     // 如果有 current=1，获取当前作业执行状态
     if params.get("current").map(|s| s.as_str()) == Some("1") {
@@ -177,7 +177,7 @@ pub async fn job_post(
 
     if let Some(id) = job_id {
         // 编辑作业
-        let db = state.db.write().await;
+        let db = state.db.lock().unwrap();
         let (enable, is_cron): (i32, i32) = db
             .query_row("SELECT enable, isCron FROM job WHERE id=?", [id], |row| Ok((row.get(0)?, row.get(1)?)))
             .unwrap_or((0, 0));
@@ -260,7 +260,7 @@ pub async fn job_post(
         let min_file_size = body.get("minFileSize").and_then(|v| v.as_i64());
         let max_file_size = body.get("maxFileSize").and_then(|v| v.as_i64());
 
-        let db = state.db.write().await;
+        let db = state.db.lock().unwrap();
         match db.execute(
             "INSERT INTO job (enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT,
              useCacheS, scanIntervalS, method, sourceMode, interval, isCron,
@@ -294,7 +294,7 @@ pub async fn job_put(
         Some(true) => {
             // 禁用/中止作业
             let job_id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
-            let db = state.db.write().await;
+            let db = state.db.lock().unwrap();
             if abort.is_some() {
                 // 中止作业
                 let _ = db.execute(
@@ -314,7 +314,7 @@ pub async fn job_put(
         Some(false) => {
             // 启用作业
             let job_id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
-            let db = state.db.write().await;
+            let db = state.db.lock().unwrap();
             let _ = db.execute("UPDATE job SET enable=1 WHERE id=?", [job_id]);
             Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已启用"))
         }
@@ -322,13 +322,13 @@ pub async fn job_put(
             // 手动执行
             if let Some(job_id) = body.get("id").and_then(|v| v.as_i64()) {
                 // 执行单个作业
-                let db = state.db.read().await;
+                let db = state.db.lock().unwrap();
                 let enable: i32 = db.query_row("SELECT enable FROM job WHERE id=?", [job_id], |row| row.get(0)).unwrap_or(0);
                 if enable != 1 {
                     return Json(ApiResponse::err(&i18n::t("disabled_job_cannot_run")));
                 }
                 drop(db);
-                let db = state.db.write().await;
+                let db = state.db.lock().unwrap();
                 let ts = now_ts();
                 match db.execute(
                     "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
@@ -345,7 +345,7 @@ pub async fn job_put(
                 }
             } else {
                 // 执行所有启用的作业
-                let db = state.db.read().await;
+                let db = state.db.lock().unwrap();
                 let mut stmt = match db.prepare("SELECT id FROM job WHERE enable=1") {
                     Ok(s) => s,
                     Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))),
@@ -358,7 +358,7 @@ pub async fn job_put(
                     return Json(ApiResponse::err(&i18n::t("no_job_for_run")));
                 }
                 drop(db);
-                let db = state.db.write().await;
+                let db = state.db.lock().unwrap();
                 let ts = now_ts();
                 let mut tasks = vec![];
                 for job_id in &job_ids {
@@ -384,7 +384,7 @@ pub async fn job_delete(
     State(state): State<crate::state::SharedState>,
     Json(body): Json<serde_json::Value>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
 
     if let Some(task_id) = body.get("taskId").and_then(|v| v.as_i64()) {
         // 删除任务

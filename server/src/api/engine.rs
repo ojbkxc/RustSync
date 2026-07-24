@@ -12,7 +12,7 @@ pub async fn alist_get(
     State(state): State<crate::state::SharedState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let db = state.db.read().await;
+    let db = state.db.lock().unwrap();
 
     // 如果有 alistId 和 path，查询子路径
     if let (Some(alist_id_str), Some(path)) = (params.get("alistId"), params.get("path")) {
@@ -115,7 +115,7 @@ pub async fn alist_post(
     State(state): State<crate::state::SharedState>,
     Json(req): Json<EngineRequest>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     match db.execute(
         "INSERT INTO alist_list (remark, url, userName, token, engineType) VALUES (?, ?, ?, ?, ?)",
         rusqlite::params![req.remark, req.url, req.user_name, req.token, req.engine_type],
@@ -134,7 +134,7 @@ pub async fn alist_put(
     if id == 0 {
         return Json(ApiResponse::err("缺少引擎ID"));
     }
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     let remark = body.get("remark").and_then(|v| v.as_str()).map(|s| s.to_string());
     let url = body.get("url").and_then(|v| v.as_str()).unwrap_or("");
     let user_name = body.get("userName").and_then(|v| v.as_str()).map(|s| s.to_string());
@@ -159,7 +159,7 @@ pub async fn alist_delete(
     if id == 0 {
         return Json(ApiResponse::err("缺少引擎ID"));
     }
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     // 检查是否内置引擎
     let protected: bool = db
         .query_row("SELECT protected FROM alist_list WHERE id=?", [id], |row| row.get(0))
@@ -232,7 +232,7 @@ pub async fn storage_get(
         _ => {
             // 默认：获取挂载列表
             let engine_id: i64 = params.get("engineId").and_then(|s| s.parse().ok()).unwrap_or(0);
-            let db = state.db.read().await;
+            let db = state.db.lock().unwrap();
             let mut stmt = match db.prepare(
                 "SELECT id, engineId, name, driverType, config, enabled, configVersion, authVersion, createTime
                  FROM storage_mount WHERE engineId=? ORDER BY id",
@@ -302,7 +302,7 @@ pub async fn storage_post(
             let enabled = body.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
             let config_str = serde_json::to_string(&config).unwrap_or_default();
 
-            let db = state.db.write().await;
+            let db = state.db.lock().unwrap();
             match db.execute(
                 "INSERT INTO storage_mount (engineId, name, driverType, config, enabled) VALUES (?, ?, ?, ?, ?)",
                 rusqlite::params![engine_id, name, driver_type, config_str, enabled as i32],
@@ -329,7 +329,7 @@ pub async fn storage_put(
     let enabled = body.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
     let config_str = serde_json::to_string(&config).unwrap_or_default();
 
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     match db.execute(
         "UPDATE storage_mount SET name=?, driverType=?, config=?, enabled=?, configVersion=configVersion+1 WHERE id=?",
         rusqlite::params![name, driver_type, config_str, enabled as i32, id],
@@ -345,7 +345,7 @@ pub async fn storage_delete(
     Json(body): Json<serde_json::Value>,
 ) -> Json<ApiResponse<serde_json::Value>> {
     let id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     match db.execute("DELETE FROM storage_mount WHERE id=?", [id]) {
         Ok(_) => Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("mount_deleted"))),
         Err(e) => Json(ApiResponse::err(&format!("删除失败: {}", e))),

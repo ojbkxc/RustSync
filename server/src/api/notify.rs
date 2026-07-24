@@ -11,7 +11,7 @@ use crate::service::i18n;
 pub async fn list_notifies(
     State(state): State<crate::state::SharedState>,
 ) -> Json<ApiResponse<Vec<Notify>>> {
-    let db = state.db.read().await;
+    let db = state.db.lock().unwrap();
     let mut stmt = match db.prepare(
         "SELECT id, enable, method, params, createTime FROM notify ORDER BY id",
     ) {
@@ -53,7 +53,7 @@ pub async fn add_notify(
         let method = notify_data.get("method").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
         let params = notify_data.get("params").cloned().unwrap_or_default();
         let params_str = serde_json::to_string(&params).unwrap_or_default();
-        let db = state.db.write().await;
+        let db = state.db.lock().unwrap();
         match db.execute(
             "INSERT INTO notify (enable, method, params) VALUES (1, ?, ?)",
             rusqlite::params![method, params_str],
@@ -81,7 +81,7 @@ pub async fn update_notify(
     State(state): State<crate::state::SharedState>,
     Json(body): Json<serde_json::Value>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
 
     // 判断是切换状态还是编辑通知
     if let Some(notify_id) = body.get("notifyId").and_then(|v| v.as_i64()) {
@@ -126,7 +126,7 @@ pub async fn delete_notify(
         Some(id) => id,
         None => return Json(ApiResponse::err("缺少 notifyId 参数")),
     };
-    let db = state.db.write().await;
+    let db = state.db.lock().unwrap();
     match db.execute("DELETE FROM notify WHERE id=?", [notify_id]) {
         Ok(_) => Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("notify_deleted"))),
         Err(e) => Json(ApiResponse::err(&format!("删除失败: {}", e))),

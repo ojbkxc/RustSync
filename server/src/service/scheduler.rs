@@ -126,47 +126,49 @@ impl Scheduler {
 
 /// 初始化所有启用的作业
 pub async fn init_all_jobs(state: &crate::state::SharedState) -> anyhow::Result<()> {
-    let db = state.db.read().await;
-    let mut stmt = db.prepare(
-        "SELECT id, enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT,
-                useCacheS, scanIntervalS, method, sourceMode, interval, isCron,
-                year, month, day, week, day_of_week, hour, minute, second,
-                start_date, end_date, exclude, minFileSize, maxFileSize, createTime
-         FROM job WHERE enable=1 AND isCron != 2"
-    )?;
+    let jobs: Vec<Job> = {
+        let db = state.db.lock().unwrap();
+        let mut stmt = db.prepare(
+            "SELECT id, enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT,
+                    useCacheS, scanIntervalS, method, sourceMode, interval, isCron,
+                    year, month, day, week, day_of_week, hour, minute, second,
+                    start_date, end_date, exclude, minFileSize, maxFileSize, createTime
+             FROM job WHERE enable=1 AND isCron != 2"
+        )?;
 
-    let jobs: Vec<Job> = stmt.query_map([], |row| {
-        Ok(Job {
-            id: row.get(0)?,
-            enable: row.get::<_, i32>(1)? != 0,
-            remark: row.get(2)?,
-            src_path: row.get(3)?,
-            dst_path: row.get(4)?,
-            alist_id: row.get(5)?,
-            use_cache_t: row.get::<_, i32>(6)? != 0,
-            scan_interval_t: row.get(7)?,
-            use_cache_s: row.get::<_, i32>(8)? != 0,
-            scan_interval_s: row.get(9)?,
-            method: row.get(10)?,
-            source_mode: row.get::<_, i32>(11)? != 0,
-            interval: row.get(12)?,
-            is_cron: row.get(13)?,
-            year: row.get(14)?,
-            month: row.get(15)?,
-            day: row.get(16)?,
-            week: row.get(17)?,
-            day_of_week: row.get(18)?,
-            hour: row.get(19)?,
-            minute: row.get(20)?,
-            second: row.get(21)?,
-            start_date: row.get(22)?,
-            end_date: row.get(23)?,
-            exclude: row.get(24)?,
-            min_file_size: row.get(25)?,
-            max_file_size: row.get(26)?,
-            create_time: row.get(27)?,
-        })
-    })?.filter_map(|r| r.ok()).collect();
+        stmt.query_map([], |row| {
+            Ok(Job {
+                id: row.get(0)?,
+                enable: row.get::<_, i32>(1)? != 0,
+                remark: row.get(2)?,
+                src_path: row.get(3)?,
+                dst_path: row.get(4)?,
+                alist_id: row.get(5)?,
+                use_cache_t: row.get::<_, i32>(6)? != 0,
+                scan_interval_t: row.get(7)?,
+                use_cache_s: row.get::<_, i32>(8)? != 0,
+                scan_interval_s: row.get(9)?,
+                method: row.get(10)?,
+                source_mode: row.get::<_, i32>(11)? != 0,
+                interval: row.get(12)?,
+                is_cron: row.get(13)?,
+                year: row.get(14)?,
+                month: row.get(15)?,
+                day: row.get(16)?,
+                week: row.get(17)?,
+                day_of_week: row.get(18)?,
+                hour: row.get(19)?,
+                minute: row.get(20)?,
+                second: row.get(21)?,
+                start_date: row.get(22)?,
+                end_date: row.get(23)?,
+                exclude: row.get(24)?,
+                min_file_size: row.get(25)?,
+                max_file_size: row.get(26)?,
+                create_time: row.get(27)?,
+            })
+        })?.filter_map(|r| r.ok()).collect()
+    }; // MutexGuard dropped here, safe to .await below
 
     let scheduler = crate::service::scheduler::get_scheduler();
     for job in jobs {
