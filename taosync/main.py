@@ -13,7 +13,15 @@ from service.system import onStart
 
 class MainIndex(RequestHandler):
     def get(self):
-        self.render(os.path.join(frontendPath, "front/index.html"))
+        index_path = os.path.join(frontendPath, "front", "index.html")
+        try:
+            with open(index_path, 'rb') as f:
+                content = f.read()
+            self.set_header('Content-Type', 'text/html; charset=utf-8')
+            self.write(content)
+        except FileNotFoundError:
+            self.set_status(404)
+            self.write(b'<html><body><h1>Frontend not found</h1><p>The frontend files are missing from the build.</p></body></html>')
 
 
 def make_app():
