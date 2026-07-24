@@ -3,16 +3,16 @@
 </p>
 
 <div align="center">
-  <a href="https://github.com/dr34m-cn/taosync">
+  <a href="https://github.com/ojbkxc/taosync-Magisk">
     <img height="64" alt="TaoSync" src="./taosync-logo.svg"/>
   </a>
   <p><em>TaoSync is an automated synchronization tool with a built-in storage engine and OpenList/AList v3+ compatibility.</em></p>
   <div>
-    <a href="https://github.com/dr34m-cn/taosync/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/dr34m-cn/taosync" alt="License" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/ojbkxc/taosync-Magisk" alt="License" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/actions/workflows/build.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/dr34m-cn/taosync/build.yml?branch=main" alt="Build status" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/actions/workflows/build.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/ojbkxc/taosync-Magisk/build.yml?branch=main" alt="Build status" />
     </a>
     <a href="https://www.python.org/">
       <img src="https://img.shields.io/badge/backend-python-326c9c.svg" alt="Python" />
@@ -20,11 +20,11 @@
     <a href="https://vuejs.org/">
       <img src="https://img.shields.io/badge/frontend-vue-42b883.svg" alt="Vue" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/releases">
-      <img src="https://img.shields.io/github/release/dr34m-cn/taosync" alt="Latest version" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/releases">
+      <img src="https://img.shields.io/github/release/ojbkxc/taosync-Magisk" alt="Latest version" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/releases">
-      <img src="https://img.shields.io/github/downloads/dr34m-cn/taosync/total?color=%239F7AEA&logo=github" alt="Downloads" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/releases">
+      <img src="https://img.shields.io/github/downloads/ojbkxc/taosync-Magisk/total?color=%239F7AEA&logo=github" alt="Downloads" />
     </a>
     <a href="https://hub.docker.com/r/dr34m/tao-sync">
       <img src="https://img.shields.io/docker/pulls/dr34m/tao-sync?color=%2348BB78&logo=docker&label=pulls" alt="Docker Hub pulls" />
@@ -38,7 +38,7 @@ Taotao is my daughter's nickname.
 
 I originally created this project to preserve photos of Taotao as she grows up, hence the name `TaoSync`.
 
-**If you find TaoSync useful, please star the repository. Thank you!** [GitHub](https://github.com/dr34m-cn/taosync) [Gitee](https://gitee.com/dr34m/taosync) [Docker Hub](https://hub.docker.com/r/dr34m/tao-sync)
+**If you find TaoSync useful, please star the repository. Thank you!** [GitHub](https://github.com/ojbkxc/taosync-Magisk) [Gitee](https://gitee.com/dr34m/taosync) [Docker Hub](https://hub.docker.com/r/dr34m/tao-sync)
 
 <details>
 
@@ -161,7 +161,7 @@ Because Source Directory Mode does not read destinations, it cannot detect conte
 
 * Standalone executable
 
-Download the executable for your platform from [Releases](https://github.com/dr34m-cn/taosync/releases) and run it directly.
+Download the executable for your platform from [Releases](https://github.com/ojbkxc/taosync-Magisk/releases) and run it directly.
 
 * Docker
 
@@ -282,14 +282,14 @@ This file does not exist by default. To use it, create `config.ini` in the `data
 
 ## Development Status
 
-The changelog is available [here](https://github.com/dr34m-cn/taosync/tree/main/doc/changelog).
+The changelog is available [here](https://github.com/ojbkxc/taosync-Magisk/tree/main/doc/changelog).
 
-To try a development build, look for the latest tag containing `dev` or `pre` on [Docker Hub](https://hub.docker.com/r/dr34m/tao-sync) or [Releases](https://github.com/dr34m-cn/taosync/releases), such as `v0.1.0-dev-build0`. Development builds may contain obvious errors or serious bugs and are not recommended for beginners.
+To try a development build, look for the latest tag containing `dev` or `pre` on [Docker Hub](https://hub.docker.com/r/dr34m/tao-sync) or [Releases](https://github.com/ojbkxc/taosync-Magisk/releases), such as `v0.1.0-dev-build0`. Development builds may contain obvious errors or serious bugs and are not recommended for beginners.
 
 ### Planned (subject to change or cancellation if implementation proves too difficult; no promises)
 
-* Improve the Windows version, including launch at startup, hidden-window operation, start/stop controls, and more [#13](https://github.com/dr34m-cn/taosync/issues/13)
-* Support encrypted synchronization through OpenList [#18](https://github.com/dr34m-cn/taosync/issues/18)
+* Improve the Windows version, including launch at startup, hidden-window operation, start/stop controls, and more [#13](https://github.com/ojbkxc/taosync-Magisk/issues/13)
+* Support encrypted synchronization through OpenList [#18](https://github.com/ojbkxc/taosync-Magisk/issues/18)
 * Support encrypted synchronization for the local engine
 * Retain the latest N historical versions, with a configurable and potentially unlimited value for N
 * Import and export configuration

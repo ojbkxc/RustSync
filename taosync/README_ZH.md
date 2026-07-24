@@ -3,16 +3,16 @@
 </p>
 
 <div align="center">
-  <a href="https://github.com/dr34m-cn/taosync">
+  <a href="https://github.com/ojbkxc/taosync-Magisk">
     <img height="64" alt="TaoSync" src="./taosync-logo.svg"/>
   </a>
   <p><em>TaoSync 是一个带内置存储引擎、并兼容 OpenList/AList v3+ 的自动化同步工具。</em></p>
   <div>
-    <a href="https://github.com/dr34m-cn/taosync/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/dr34m-cn/taosync" alt="License" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/ojbkxc/taosync-Magisk" alt="License" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/actions/workflows/build.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/dr34m-cn/taosync/build.yml?branch=main" alt="Build status" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/actions/workflows/build.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/ojbkxc/taosync-Magisk/build.yml?branch=main" alt="Build status" />
     </a>
     <a href="https://www.python.org/">
       <img src="https://img.shields.io/badge/backend-python-326c9c.svg" alt="Python" />
@@ -20,11 +20,11 @@
     <a href="https://vuejs.org/">
       <img src="https://img.shields.io/badge/frontend-vue-42b883.svg" alt="Vue" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/releases">
-      <img src="https://img.shields.io/github/release/dr34m-cn/taosync" alt="latest version" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/releases">
+      <img src="https://img.shields.io/github/release/ojbkxc/taosync-Magisk" alt="latest version" />
     </a>
-    <a href="https://github.com/dr34m-cn/taosync/releases">
-      <img src="https://img.shields.io/github/downloads/dr34m-cn/taosync/total?color=%239F7AEA&logo=github" alt="Downloads" />
+    <a href="https://github.com/ojbkxc/taosync-Magisk/releases">
+      <img src="https://img.shields.io/github/downloads/ojbkxc/taosync-Magisk/total?color=%239F7AEA&logo=github" alt="Downloads" />
     </a>
     <a href="https://hub.docker.com/r/dr34m/tao-sync">
       <img src="https://img.shields.io/docker/pulls/dr34m/tao-sync?color=%2348BB78&logo=docker&label=pulls" alt="DockerHub" />
@@ -38,7 +38,7 @@
 
 本程序开发之初，主要是为了保存桃桃成长的照片，故名`taoSync`
 
-**如果好用，请Star！非常感谢！**  [GitHub](https://github.com/dr34m-cn/taosync) [Gitee](https://gitee.com/dr34m/taosync) [DockerHub](https://hub.docker.com/r/dr34m/tao-sync)
+**如果好用，请Star！非常感谢！**  [GitHub](https://github.com/ojbkxc/taosync-Magisk) [Gitee](https://gitee.com/dr34m/taosync) [DockerHub](https://hub.docker.com/r/dr34m/tao-sync)
 
 <details>
 
@@ -161,7 +161,7 @@ SFTP v3 无法在所有服务端路径竞态下提供通用的“禁止跟随链
 
 * 可执行程序
 
-前往[Release](https://github.com/dr34m-cn/taosync/releases)下载对应平台的可执行程序，直接执行
+前往[Release](https://github.com/ojbkxc/taosync-Magisk/releases)下载对应平台的可执行程序，直接执行
 
 * docker
 
@@ -280,14 +280,14 @@ task_timeout=72
 
 ## 研发状态
 
-历史记录在[这里](https://github.com/dr34m-cn/taosync/tree/main/doc/changelog)；
+历史记录在[这里](https://github.com/ojbkxc/taosync-Magisk/tree/main/doc/changelog)；
 
-如想体验研发中的版本(可能存在明显错误或严重bug，不建议小白尝试)，可以尝试到[DockerHub](https://hub.docker.com/r/dr34m/tao-sync)或[Release](https://github.com/dr34m-cn/taosync/releases)找最新的含`dev`或`pre`的tag，例如`v0.1.0-dev-build0`
+如想体验研发中的版本(可能存在明显错误或严重bug，不建议小白尝试)，可以尝试到[DockerHub](https://hub.docker.com/r/dr34m/tao-sync)或[Release](https://github.com/ojbkxc/taosync-Magisk/releases)找最新的含`dev`或`pre`的tag，例如`v0.1.0-dev-build0`
 
 ### 规划中（随时改变or因太难不做了，概不负责）
 
-* windows版本优化（开机自启，隐藏页面，启动停止等）[#13](https://github.com/dr34m-cn/taosync/issues/13)
-* OpenList支持加密同步 [#18](https://github.com/dr34m-cn/taosync/issues/18)
+* windows版本优化（开机自启，隐藏页面，启动停止等）[#13](https://github.com/ojbkxc/taosync-Magisk/issues/13)
+* OpenList支持加密同步 [#18](https://github.com/ojbkxc/taosync-Magisk/issues/18)
 * 本地引擎支持加密同步
 * 保留历史N个版本（N可自定义，可无限）
 * 配置导入导出
