@@ -1,4 +1,12 @@
-# --- 构建阶段：前端 ---
+﻿# syntax=docker/dockerfile:1
+# ============================================================
+# RustSync 多架构 Docker 镜像 (amd64 + arm64)
+# 构建:
+#   docker build -t rustsync .
+#   docker buildx build --platform linux/amd64,linux/arm64 -t rustsync .
+# ============================================================
+
+# ---- 前端构建 ----
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app/web
 COPY rustsync/web/package.json rustsync/web/package-lock.json ./
@@ -6,7 +14,7 @@ RUN npm ci
 COPY rustsync/web/ ./
 RUN npm run build
 
-# --- 构建阶段：Rust 服务端 ---
+# ---- Rust 服务端构建 ----
 FROM rust:1.85-alpine AS server-builder
 RUN apk add --no-cache musl-dev
 WORKDIR /app
@@ -19,7 +27,7 @@ COPY server/locales ./locales
 COPY --from=frontend-builder /app/web/dist ./static
 RUN cargo build --release
 
-# --- 运行阶段 ---
+# ---- 运行阶段 ----
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
 LABEL org.opencontainers.image.title="RustSync"

@@ -1,0 +1,34 @@
+services:
+  rustsync:
+    image: ghcr.io/ojbkxc/rustsync:latest
+    container_name: rustsync
+    restart: unless-stopped
+    ports:
+      - "8023:8023"
+    volumes:
+      - rustsync_data:/app/data
+    environment:
+      - RUSTSYNC_PORT=8023
+      - RUSTSYNC_PASSWORD=admin
+      - RUSTSYNC_EXPIRES=2
+      - RUSTSYNC_LOG_LEVEL=1
+      - RUSTSYNC_CONSOLE_LEVEL=2
+      - RUSTSYNC_LOG_SAVE=7
+      - RUSTSYNC_TASK_SAVE=0
+      - RUSTSYNC_TASK_TIMEOUT=72
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8023/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  rustsync_data:
+    name: rustsync_data

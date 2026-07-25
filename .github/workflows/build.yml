@@ -81,7 +81,7 @@ jobs:
           retention-days: 1
 
   # ============================================================
-  # Android APK (arm64-v8a + armeabi-v7a)
+  # Android APK (arm64-v8a)
   # ============================================================
   build-android-apk:
     name: 构建 Android APK
@@ -110,13 +110,12 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi
+          targets: aarch64-linux-android
 
       - name: Install cargo-ndk
         run: |
           cargo install cargo-ndk
           rustup target add aarch64-linux-android
-          rustup target add armv7-linux-androideabi
 
       - name: 复制前端到 Rust static
         run: |
@@ -131,20 +130,11 @@ jobs:
           cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
           echo "arm64-v8a built"
 
-      - name: 构建 Rust (armeabi-v7a)
-        working-directory: server
-        run: |
-          cargo ndk --target armv7-linux-androideabi --platform 21 -- build --release
-          mkdir -p ../rustsync/bin/armeabi-v7a
-          cp target/armv7-linux-androideabi/release/rustsync-server ../rustsync/bin/armeabi-v7a/rustsync_server
-          echo "armeabi-v7a built"
 
       - name: 验证 Rust 二进制
         run: |
           file rustsync/bin/arm64-v8a/rustsync_server
-          file rustsync/bin/armeabi-v7a/rustsync_server
           test -f rustsync/bin/arm64-v8a/rustsync_server
-          test -f rustsync/bin/armeabi-v7a/rustsync_server
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -192,14 +182,91 @@ jobs:
             echo "::error::未找到 APK 产物"
             exit 1
           fi
-          cp "$apk_path" "dist/${APP_NAME}-${VERSION}-android-debug.apk"
-          echo "APK: dist/${APP_NAME}-${VERSION}-android-debug.apk"
+          cp "$apk_path" "dist/${APP_NAME}-app-${VERSION}.apk"
+          echo "APK: dist/${APP_NAME}-app-${VERSION}.apk"
 
       - name: 上传 APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-android
+          name: dist-apk
           path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  # ============================================================
+  # Android Magisk 模块 (arm64-v8a, Rust 原生二进制)
+  # ============================================================
+  build-android-magisk:
+    name: 构建 Android Magisk (arm64-v8a)
+    runs-on: ubuntu-latest
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 复制前端到 static
+        run: |
+          mkdir -p server/static
+          cp -r rustsync/web/dist/* server/static/
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: 构建 Rust (arm64-v8a)
+        working-directory: server
+        run: |
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../dist/bin/arm64-v8a
+          cp target/aarch64-linux-android/release/rustsync-server ../dist/bin/arm64-v8a/rustsync_server
+          echo "arm64-v8a built"
+
+      - name: 验证 Rust 二进制
+        run: |
+          file dist/bin/arm64-v8a/rustsync_server
+          test -f dist/bin/arm64-v8a/rustsync_server
+
+      - name: 打包 Magisk 模块
+        run: |
+          MAGISK_TMP=$(mktemp -d)
+          cp module.prop customize.sh service.sh "$MAGISK_TMP/"
+          cp -r META-INF "$MAGISK_TMP/"
+
+          mkdir -p "$MAGISK_TMP/system/bin"
+          cp dist/bin/arm64-v8a/rustsync_server "$MAGISK_TMP/system/bin/rustsync_server"
+
+          mkdir -p "$MAGISK_TMP/static"
+          cp -r server/static/* "$MAGISK_TMP/static/"
+
+          # 更新 module.prop
+          sed -i "s/^version=.*/version=${VERSION}/" "$MAGISK_TMP/module.prop"
+          VERSION_CODE=$(echo "$VERSION" | tr -d '.')
+          sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
+
+          (cd "$MAGISK_TMP" && zip -qr "$OLDPWD/dist/${APP_NAME}-${VERSION}.zip" .)
+          rm -rf "$MAGISK_TMP"
+          echo "Magisk: dist/${APP_NAME}-${VERSION}.zip"
+
+      - name: 上传 Magisk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-magisk
+          path: dist/${APP_NAME}-*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -480,7 +547,7 @@ jobs:
   create-release:
     name: 发布 Release
     runs-on: ubuntu-latest
-    needs: [get-version, build-android-apk, build-linux, build-windows, build-macos, merge-docker]
+    needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, merge-docker]
     env:
       TAG: ${{ needs.get-version.outputs.tag }}
       VERSION: ${{ needs.get-version.outputs.version }}
@@ -512,7 +579,8 @@ jobs:
             ### 下载
             | 平台 | 文件 |
             |------|------|
-            | Android APK | `RustSync-${{ env.VERSION }}-android-debug.apk` |
+            | Android APK | `RustSync-app-${{ env.VERSION }}.apk` |
+            | Android Magisk | `RustSync-${{ env.VERSION }}.zip` |
             | Linux amd64 | `RustSync-${{ env.VERSION }}-linux-amd64.tar.gz` |
             | Linux arm64 | `RustSync-${{ env.VERSION }}-linux-arm64.tar.gz` |
             | Windows amd64 | `RustSync-${{ env.VERSION }}-windows-amd64.zip` |
@@ -522,13 +590,19 @@ jobs:
 
             ### 使用
             - **APK**: 安装后打开 App，WebView 自动加载管理面板
+            - **Magisk**: 下载 `RustSync-${{ env.VERSION }}.zip` 通过 Magisk 刷入
             - **Linux/macOS**: `tar xzf` 解压后运行 `./rustsync-server`
             - **Windows**: 解压后运行 `rustsync-server.exe`
-            - **Docker**: `docker run -p 8023:8023 -v data:/app/data ojbkxc/rustsync:${{ env.VERSION }}`
+            - **Docker**: `docker pull ojbkxc/rustsync:${{ env.VERSION }}`
 
             ### 默认
             - 端口: `8023`
             - 密码: `admin`
-          files: dist/*
+          files: |
+            dist/${APP_NAME}-app-*.apk
+            dist/${APP_NAME}-*.zip
+            dist/${APP_NAME}-*-linux-*.tar.gz
+            dist/${APP_NAME}-*-darwin-*.tar.gz
+            dist/${APP_NAME}-*-windows-*.zip
           draft: false
           prerelease: false
