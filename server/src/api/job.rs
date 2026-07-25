@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    response::IntoResponse,
     Json,
 };
 use crate::data::models::Job;
