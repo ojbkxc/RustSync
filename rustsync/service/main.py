@@ -532,6 +532,7 @@ def _monitor_rust():
 
 
 async def main():
+    global _RUST_BINARY
     _file_log('INFO', '服务进程正在初始化...')
 
     # 确保 Rust 二进制目录存在
@@ -541,7 +542,6 @@ async def main():
         # 尝试备用路径
         alt_binary = os.path.join(_app_dir, 'rustsync_server')
         if os.path.exists(alt_binary):
-            global _RUST_BINARY
             _RUST_BINARY = alt_binary
             _file_log('INFO', f'使用备用路径: {_RUST_BINARY}')
 
