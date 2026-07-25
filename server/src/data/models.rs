@@ -18,9 +18,7 @@ pub struct Engine {
     pub create_time: i64,
 }
 
-fn default_engine_type() -> String {
-    "alist".to_string()
-}
+fn default_engine_type() -> String { "alist".to_string() }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,7 +31,6 @@ pub struct EngineRequest {
     pub engine_type: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageMount {
@@ -41,14 +38,13 @@ pub struct StorageMount {
     pub engine_id: i64,
     pub name: String,
     pub driver_type: String,
-    pub config: String, // JSON 字符串
+    pub config: String,
     pub enabled: bool,
     pub config_version: i32,
     pub auth_version: i32,
     pub create_time: i64,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageMountRequest {
@@ -60,10 +56,7 @@ pub struct StorageMountRequest {
     pub enabled: bool,
 }
 
-#[allow(dead_code)]
-fn default_enabled() -> bool {
-    true
-}
+fn default_enabled() -> bool { true }
 
 // ==================== 作业 ====================
 
@@ -80,10 +73,10 @@ pub struct Job {
     pub scan_interval_t: i32,
     pub use_cache_s: bool,
     pub scan_interval_s: i32,
-    pub method: i32, // 0-仅新增, 1-全同步, 2-移动模式
+    pub method: i32,
     pub source_mode: bool,
     pub interval: Option<i32>,
-    pub is_cron: i32, // 0-interval, 1-cron, 2-手动
+    pub is_cron: i32,
     pub year: Option<String>,
     pub month: Option<String>,
     pub day: Option<String>,
@@ -100,7 +93,6 @@ pub struct Job {
     pub create_time: i64,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JobRequest {
@@ -109,21 +101,14 @@ pub struct JobRequest {
     pub src_path: String,
     pub dst_path: String,
     pub alist_id: Option<i64>,
-    #[serde(default)]
-    pub use_cache_t: bool,
-    #[serde(default)]
-    pub scan_interval_t: i32,
-    #[serde(default)]
-    pub use_cache_s: bool,
-    #[serde(default)]
-    pub scan_interval_s: i32,
+    #[serde(default)] pub use_cache_t: bool,
+    #[serde(default)] pub scan_interval_t: i32,
+    #[serde(default)] pub use_cache_s: bool,
+    #[serde(default)] pub scan_interval_s: i32,
     pub method: i32,
-    #[serde(default)]
-    pub source_mode: bool,
-    #[serde(default)]
-    pub interval: Option<i32>,
-    #[serde(default)]
-    pub is_cron: i32,
+    #[serde(default)] pub source_mode: bool,
+    #[serde(default)] pub interval: Option<i32>,
+    #[serde(default)] pub is_cron: i32,
     pub year: Option<String>,
     pub month: Option<String>,
     pub day: Option<String>,
@@ -146,10 +131,10 @@ pub struct JobRequest {
 pub struct JobTask {
     pub id: i64,
     pub job_id: i64,
-    pub status: i32, // 0-等待, 1-进行中, 2-成功, 3-部分失败, 4-中止, 5-超时, 6-失败, 7-手动终止
+    pub status: i32,
     pub err_msg: Option<String>,
     pub run_time: Option<i64>,
-    pub task_num: Option<String>, // JSON 统计
+    pub task_num: Option<String>,
     pub create_time: i64,
 }
 
@@ -164,7 +149,7 @@ pub struct JobTaskItem {
     pub file_name: Option<String>,
     pub file_size: Option<i64>,
     #[serde(rename = "type")]
-    pub item_type: i32, // 0-复制, 1-删除, 2-移动
+    pub item_type: i32,
     pub alist_task_id: Option<String>,
     pub status: i32,
     pub progress: Option<f64>,
@@ -179,12 +164,11 @@ pub struct JobTaskItem {
 pub struct Notify {
     pub id: i64,
     pub enable: bool,
-    pub method: i32, // 0-自定义, 1-Server酱, 2-钉钉, 3-企业微信, 4-Lark
-    pub params: String, // JSON
+    pub method: i32,
+    pub params: String,
     pub create_time: i64,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotifyRequest {
@@ -237,9 +221,8 @@ pub struct ResetPasswordRequest {
     pub passwd: Option<String>,
 }
 
-// ==================== 分页 ====================
+// ==================== 分页 / 语言 ====================
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageRequest {
@@ -249,16 +232,9 @@ pub struct PageRequest {
     pub page_size: i32,
 }
 
-#[allow(dead_code)]
-fn default_page_num() -> i32 {
-    1
-}
-#[allow(dead_code)]
-fn default_page_size() -> i32 {
-    10
-}
+fn default_page_num() -> i32 { 1 }
+fn default_page_size() -> i32 { 10 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageResult<T: Serialize> {
@@ -268,10 +244,18 @@ pub struct PageResult<T: Serialize> {
     pub page_size: i32,
 }
 
-// ==================== 语言 ====================
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LanguageRequest {
     pub language: String,
+}
+
+// ==================== JWT Claims ====================
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: i64,
+    pub user_name: String,
+    pub exp: usize,
+    pub iat: usize,
 }

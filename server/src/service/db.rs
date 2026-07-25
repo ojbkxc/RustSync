@@ -1,15 +1,11 @@
-use md5::{Digest, Md5};
 use rusqlite::Connection;
 use crate::config::Config;
 
-/// 当前数据库版本号（与 Python 版保持一致）
 const DB_VERSION: i32 = 260718;
 
-/// 初始化数据库表结构和迁移
 pub fn init_database(conn: &Connection, config: &Config) -> anyhow::Result<Option<String>> {
     let mut generated_password: Option<String> = None;
 
-    // 检查 user_list 表是否存在
     let user_table_exists: bool = conn
         .prepare("SELECT name FROM sqlite_master WHERE name='user_list'")
         .and_then(|mut s| s.exists([]))
@@ -21,25 +17,20 @@ pub fn init_database(conn: &Connection, config: &Config) -> anyhow::Result<Optio
             .unwrap_or(0);
 
         if user_count == 0 {
-            // 首次初始化被中断导致空表，检查是否有业务数据
             let has_business_data = check_business_data(conn)?;
             if has_business_data {
                 anyhow::bail!("database has storage data but no administrator user; refusing destructive recovery");
             }
-            // 清理空表并重建
             cleanup_tables(conn)?;
             generated_password = create_tables(conn, config)?;
         } else {
-            // 已有用户，执行迁移
             migrate_tables(conn)?;
         }
     } else {
         generated_password = create_tables(conn, config)?;
     }
 
-    // 确保内置引擎存在
     ensure_builtin_engine(conn)?;
-
     Ok(generated_password)
 }
 
@@ -57,12 +48,9 @@ fn check_business_data(conn: &Connection) -> anyhow::Result<bool> {
             let count: i32 = conn
                 .query_row(&format!("SELECT count(*) FROM {}", table), [], |row| row.get(0))
                 .unwrap_or(0);
-            if count > 0 {
-                return Ok(true);
-            }
+            if count > 0 { return Ok(true); }
         }
     }
-    // 检查 alist_list 是否有外部引擎
     let alist_exists: bool = conn
         .prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='alist_list'")
         .and_then(|mut s| s.exists([]))
@@ -71,9 +59,7 @@ fn check_business_data(conn: &Connection) -> anyhow::Result<bool> {
         let count: i32 = conn
             .query_row("SELECT count(*) FROM alist_list WHERE url <> 'rustsync://internal'", [], |row| row.get(0))
             .unwrap_or(0);
-        if count > 0 {
-            return Ok(true);
-        }
+        if count > 0 { return Ok(true); }
     }
     Ok(false)
 }
@@ -103,7 +89,7 @@ fn create_tables(conn: &Connection, config: &Config) -> anyhow::Result<Option<St
         (config.password.clone(), None)
     };
 
-    let pwd_hash = passwd2hash(&passwd, &config.password_str);
+    let pwd_hash = bcrypt::hash(&passwd, bcrypt::DEFAULT_COST)?;
 
     conn.execute_batch(&format!(
         "CREATE TABLE user_list(
@@ -237,7 +223,6 @@ fn migrate_tables(conn: &Connection) -> anyhow::Result<()> {
         .unwrap_or(0);
 
     if sql_version < DB_VERSION {
-        // 按版本号逐步迁移（与 Python 版保持一致）
         if sql_version < 240731 {
             conn.execute_batch(&format!(
                 "ALTER TABLE user_list ADD COLUMN sqlVersion INTEGER DEFAULT {};
@@ -311,8 +296,7 @@ fn migrate_tables(conn: &Connection) -> anyhow::Result<()> {
             )?;
             let _ = conn.execute("UPDATE alist_list SET engineType='alist' WHERE engineType IS NULL", []);
             let _ = conn.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_alist_system_key ON alist_list(systemKey) WHERE systemKey IS NOT NULL",
-                [],
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_alist_system_key ON alist_list(systemKey) WHERE systemKey IS NOT NULL", [],
             );
             conn.execute_batch(
                 "CREATE TABLE IF NOT EXISTS storage_mount(
@@ -332,29 +316,19 @@ fn migrate_tables(conn: &Connection) -> anyhow::Result<()> {
             let _ = conn.execute("ALTER TABLE job ADD COLUMN sourceMode INTEGER DEFAULT 0", []);
             conn.execute_batch(
                 "CREATE TABLE IF NOT EXISTS job_source_snapshot_meta(
-                    jobId INTEGER PRIMARY KEY,
-                    initialized INTEGER DEFAULT 0,
-                    scanTime INTEGER DEFAULT NULL,
-                    entryCount INTEGER DEFAULT 0);
+                    jobId INTEGER PRIMARY KEY, initialized INTEGER DEFAULT 0,
+                    scanTime INTEGER DEFAULT NULL, entryCount INTEGER DEFAULT 0);
                  CREATE TABLE IF NOT EXISTS job_source_snapshot(
-                    jobId INTEGER NOT NULL,
-                    path TEXT NOT NULL,
-                    isDir INTEGER DEFAULT 0,
-                    size INTEGER DEFAULT NULL,
+                    jobId INTEGER NOT NULL, path TEXT NOT NULL,
+                    isDir INTEGER DEFAULT 0, size INTEGER DEFAULT NULL,
                     fingerprint TEXT DEFAULT NULL,
                     PRIMARY KEY (jobId, path));"
             )?;
         }
         if sql_version < 260718 {
-            let _ = conn.execute(
-                "ALTER TABLE job_source_snapshot ADD COLUMN fingerprint TEXT DEFAULT NULL",
-                [],
-            );
+            let _ = conn.execute("ALTER TABLE job_source_snapshot ADD COLUMN fingerprint TEXT DEFAULT NULL", []);
         }
-        conn.execute(
-            &format!("UPDATE user_list SET sqlVersion={}", DB_VERSION),
-            [],
-        )?;
+        conn.execute(&format!("UPDATE user_list SET sqlVersion={}", DB_VERSION), [])?;
     }
     Ok(())
 }
@@ -367,20 +341,17 @@ fn ensure_builtin_engine(conn: &Connection) -> anyhow::Result<()> {
             createTime INTEGER DEFAULT (strftime('%s', 'now')),
             UNIQUE (url, userName));"
     )?;
-    // 仅在列不存在时添加，避免每次启动都执行 ALTER TABLE
     let existing_cols = get_table_columns(conn, "alist_list")?;
     for (col, default_val) in &[("engineType", "alist"), ("systemKey", ""), ("protected", "0")] {
         if !existing_cols.iter().any(|c| c == col) {
             conn.execute(
-                &format!("ALTER TABLE alist_list ADD COLUMN {} TEXT DEFAULT '{}'", col, default_val),
-                [],
+                &format!("ALTER TABLE alist_list ADD COLUMN {} TEXT DEFAULT '{}'", col, default_val), [],
             )?;
         }
     }
     let _ = conn.execute("UPDATE alist_list SET engineType='alist' WHERE engineType IS NULL", []);
     let _ = conn.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_alist_system_key ON alist_list(systemKey) WHERE systemKey IS NOT NULL",
-        [],
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_alist_system_key ON alist_list(systemKey) WHERE systemKey IS NOT NULL", [],
     );
     let exists: bool = conn
         .prepare("SELECT id FROM alist_list WHERE systemKey='rustsync' LIMIT 1")
@@ -389,14 +360,12 @@ fn ensure_builtin_engine(conn: &Connection) -> anyhow::Result<()> {
     if !exists {
         conn.execute(
             "INSERT INTO alist_list (remark, url, userName, token, engineType, systemKey, protected)
-             VALUES (NULL, 'rustsync://internal', 'RustSync', NULL, 'rustsync', 'rustsync', 1)",
-            [],
+             VALUES (NULL, 'rustsync://internal', 'RustSync', NULL, 'rustsync', 'rustsync', 1)", [],
         )?;
     } else {
         conn.execute(
             "UPDATE alist_list SET userName='RustSync', url='rustsync://internal',
-             engineType='rustsync', protected=1 WHERE systemKey='rustsync'",
-            [],
+             engineType='rustsync', protected=1 WHERE systemKey='rustsync'", [],
         )?;
     }
     Ok(())
@@ -404,19 +373,12 @@ fn ensure_builtin_engine(conn: &Connection) -> anyhow::Result<()> {
 
 // ==================== 密码工具 ====================
 
-/// 密码哈希 - 与 Python commonUtils.passwd2md5 一致
-/// Python: hashlib.md5((passwd + passwdStr).encode()).hexdigest()
-pub fn passwd2hash(password: &str, secret_key: &str) -> String {
-    let mut hasher = Md5::new();
-    hasher.update(password.as_bytes());
-    hasher.update(secret_key.as_bytes());
-    format!("{:x}", hasher.finalize())
+pub fn hash_password(password: &str) -> String {
+    bcrypt::hash(password, bcrypt::DEFAULT_COST).expect("bcrypt hash failed")
 }
 
-/// 使用全局配置的密码哈希
-pub fn hash_password(password: &str) -> String {
-    let config = crate::config::get_config();
-    passwd2hash(password, &config.password_str)
+pub fn verify_password(password: &str, hash: &str) -> bool {
+    bcrypt::verify(password, hash).unwrap_or(false)
 }
 
 pub fn generate_random_password() -> String {
@@ -426,12 +388,10 @@ pub fn generate_random_password() -> String {
     (0..12).map(|_| chars[rng.gen_range(0..chars.len())]).collect()
 }
 
-/// 获取当前 Unix 时间戳
 pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
-/// 获取表的所有列名
 fn get_table_columns(conn: &Connection, table: &str) -> anyhow::Result<Vec<String>> {
     let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", table))?;
     let cols: Vec<String> = stmt

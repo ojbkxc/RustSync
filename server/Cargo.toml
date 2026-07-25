@@ -1,8 +1,8 @@
 [package]
 name = "rustsync-server"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
-description = "RustSync Rust 重写版 - 自动化存储同步服务"
+description = "RustSync - 自动化存储同步服务"
 
 [dependencies]
 # Web 框架
@@ -17,6 +17,12 @@ serde_yaml = "0.9"
 
 # 数据库
 rusqlite = { version = "0.31", features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+
+# 认证
+bcrypt = "0.15"
+jsonwebtoken = "9"
 
 # 工具库
 bytes = "1"
@@ -34,18 +40,11 @@ mime_guess = "2.0"
 # 邮件通知
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
 
-# 加密
-md-5 = "0.10"
-
 # Cron 调度
 cron = "0.12"
 
-# 字节缓冲
-
-
 # 存储驱动
 async-trait = "0.1"
-# 阿里云盘 - 通过 reqwest + OAuth
 
 [profile.release]
 opt-level = "z"

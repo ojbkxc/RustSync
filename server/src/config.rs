@@ -1,13 +1,10 @@
 use std::path::Path;
 use std::sync::RwLock;
 
-/// 数据目录
 pub const DEFAULT_DATA_DIR: &str = "data";
 pub const CONF_DIR: &str = "/data/adb/rustsync";
-#[allow(dead_code)]
 pub const MOD_DIR: &str = "/data/adb/modules/rustsync_magisk";
 
-/// 默认配置
 pub const DEFAULT_PASSWORD: &str = "RANDOM";
 pub const DEFAULT_PORT: u16 = 8023;
 pub const DEFAULT_EXPIRES: u32 = 2;
@@ -17,7 +14,6 @@ pub const DEFAULT_LOG_SAVE: u32 = 7;
 pub const DEFAULT_TASK_SAVE: u32 = 0;
 pub const DEFAULT_TASK_TIMEOUT: u32 = 72;
 
-/// 获取实际监听端口
 pub fn get_listen_port() -> u16 {
     std::env::var("RUSTSYNC_PORT")
         .ok()
@@ -25,9 +21,6 @@ pub fn get_listen_port() -> u16 {
         .unwrap_or(DEFAULT_PORT)
 }
 
-/// 获取数据目录
-/// Python 版目录结构: {CWD}/data/  (CWD = /data/adb/rustsync on Android)
-/// 例如: /data/adb/rustsync/data/rustsync.db, /data/adb/rustsync/data/secret.key
 pub fn get_data_dir() -> String {
     if Path::new(CONF_DIR).exists() {
         format!("{}/data", CONF_DIR)
@@ -36,12 +29,9 @@ pub fn get_data_dir() -> String {
     }
 }
 
-/// 获取或创建 secret.key（用于密码哈希和 cookie 签名）
-/// 与 Python 版 commonUtils.readOrSet 行为一致
-fn get_or_create_secret_key(data_dir: &str) -> String {
+fn get_or_create_jwt_secret(data_dir: &str) -> String {
     let key_path = Path::new(data_dir).join("secret.key");
     if key_path.exists() {
-        // trim 处理 Python 版可能写入的尾随换行符，确保密码哈希一致性
         std::fs::read_to_string(&key_path).unwrap_or_default().trim().to_string()
     } else {
         let key = generate_random_string(256);
@@ -60,7 +50,6 @@ fn generate_random_string(length: usize) -> String {
     (0..length).map(|_| chars[rng.gen_range(0..chars.len())]).collect()
 }
 
-/// 运行时配置
 #[derive(Debug, Clone)]
 pub struct Config {
     pub password: String,
@@ -74,15 +63,14 @@ pub struct Config {
     pub data_dir: String,
     pub log_dir: String,
     pub db_path: String,
-    /// 密码加密密钥 (secret.key 内容) - 与 Python passwdStr 一致
-    pub password_str: String,
+    pub jwt_secret: String,
     pub timezone: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         let data_dir = get_data_dir();
-        let password_str = get_or_create_secret_key(&data_dir);
+        let jwt_secret = get_or_create_jwt_secret(&data_dir);
         Self {
             password: DEFAULT_PASSWORD.to_string(),
             port: DEFAULT_PORT,
@@ -95,41 +83,26 @@ impl Default for Config {
             log_dir: format!("{}/log", data_dir),
             db_path: format!("{}/rustsync.db", data_dir),
             data_dir,
-            password_str,
+            jwt_secret,
             timezone: "Asia/Shanghai".to_string(),
         }
     }
 }
 
 impl Config {
-    /// 从环境变量加载
     pub fn load() -> Self {
         let default = Self::default();
         Self {
             password: env_password(),
-            port: env_or("RUSTSYNC_PORT", &default.port.to_string())
-                .parse()
-                .unwrap_or(default.port),
-            expires: env_or("RUSTSYNC_EXPIRES", &default.expires.to_string())
-                .parse()
-                .unwrap_or(default.expires),
-            log_level: env_or("RUSTSYNC_LOG_LEVEL", &default.log_level.to_string())
-                .parse()
-                .unwrap_or(default.log_level),
-            console_level: env_or("RUSTSYNC_CONSOLE_LEVEL", &default.console_level.to_string())
-                .parse()
-                .unwrap_or(default.console_level),
-            log_save: env_or("RUSTSYNC_LOG_SAVE", &default.log_save.to_string())
-                .parse()
-                .unwrap_or(default.log_save),
-            task_save: env_or("RUSTSYNC_TASK_SAVE", &default.task_save.to_string())
-                .parse()
-                .unwrap_or(default.task_save),
-            task_timeout: env_or("RUSTSYNC_TASK_TIMEOUT", &default.task_timeout.to_string())
-                .parse()
-                .unwrap_or(default.task_timeout),
+            port: env_or("RUSTSYNC_PORT", &default.port.to_string()).parse().unwrap_or(default.port),
+            expires: env_or("RUSTSYNC_EXPIRES", &default.expires.to_string()).parse().unwrap_or(default.expires),
+            log_level: env_or("RUSTSYNC_LOG_LEVEL", &default.log_level.to_string()).parse().unwrap_or(default.log_level),
+            console_level: env_or("RUSTSYNC_CONSOLE_LEVEL", &default.console_level.to_string()).parse().unwrap_or(default.console_level),
+            log_save: env_or("RUSTSYNC_LOG_SAVE", &default.log_save.to_string()).parse().unwrap_or(default.log_save),
+            task_save: env_or("RUSTSYNC_TASK_SAVE", &default.task_save.to_string()).parse().unwrap_or(default.task_save),
+            task_timeout: env_or("RUSTSYNC_TASK_TIMEOUT", &default.task_timeout.to_string()).parse().unwrap_or(default.task_timeout),
             timezone: env_or("TZ", &default.timezone),
-            password_str: default.password_str,
+            jwt_secret: default.jwt_secret,
             data_dir: default.data_dir,
             log_dir: default.log_dir,
             db_path: default.db_path,
@@ -141,14 +114,12 @@ fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
 
-/// 获取密码，支持 RUSTSYNC_PASSWORD 和 RUSTSYNC_PASSWD 两个环境变量（与 Python 一致）
 fn env_password() -> String {
     std::env::var("RUSTSYNC_PASSWORD")
         .or_else(|_| std::env::var("RUSTSYNC_PASSWD"))
         .unwrap_or_else(|_| DEFAULT_PASSWORD.to_string())
 }
 
-/// 全局配置缓存
 static GLOBAL_CONFIG: RwLock<Option<Config>> = RwLock::new(None);
 
 pub fn get_config() -> Config {
