@@ -7,6 +7,57 @@ use crate::data::response::ApiResponse;
 use crate::service::db::now_ts;
 use crate::service::i18n;
 
+/// 路径重叠检测 - 与 Python virtualPathsOverlap 一致
+fn paths_overlap(first: &str, second: &str) -> bool {
+    fn normalize(s: &str) -> String {
+        let v = s.replace('\\', "/");
+        let v = format!("/{}", v.trim_start_matches('/'));
+        // 简单规范化：去除多余斜杠
+        v.split('/').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("/")
+    }
+    let a = normalize(first);
+    let b = normalize(second);
+    a == b || a.starts_with(&format!("{}/", b)) || b.starts_with(&format!("{}/", a))
+}
+
+/// 作业输入校验 - 与 Python cleanJobInput 一致
+fn validate_job_input(body: &serde_json::Value) -> Result<(), String> {
+    // 校验源/目标路径重叠
+    let src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("");
+    let dst_path = body.get("dstPath").and_then(|v| v.as_str()).unwrap_or("");
+    if !src_path.is_empty() && !dst_path.is_empty() {
+        for dst in dst_path.split(':') {
+            if paths_overlap(src_path, dst) {
+                return Err(i18n::t("source_target_overlap"));
+            }
+        }
+    }
+
+    // 校验文件大小范围
+    let min_size = body.get("minFileSize").and_then(|v| v.as_i64());
+    let max_size = body.get("maxFileSize").and_then(|v| v.as_i64());
+    if let (Some(min), Some(max)) = (min_size, max_size) {
+        if min > max {
+            return Err(i18n::t("file_size_range_invalid"));
+        }
+    }
+
+    // 校验 sourceMode
+    if let Some(source_mode) = body.get("sourceMode") {
+        if let Some(v) = source_mode.as_i64() {
+            if v != 0 && v != 1 {
+                return Err(i18n::t("source_mode_invalid"));
+            }
+        } else if let Some(b) = source_mode.as_bool() {
+            // bool 允许
+        } else {
+            return Err(i18n::t("source_mode_invalid"));
+        }
+    }
+
+    Ok(())
+}
+
 /// GET /svr/job - 获取作业列表/任务详情/当前执行状态
 /// 前端调用: jobGetJob(params), jobGetTask(params), jobGetTaskItem(params), jobGetTaskCurrent(data)
 pub async fn job_get(
@@ -173,6 +224,11 @@ pub async fn job_post(
     State(state): State<crate::state::SharedState>,
     Json(body): Json<serde_json::Value>,
 ) -> Json<ApiResponse<serde_json::Value>> {
+    // 输入校验（与 Python cleanJobInput 一致）
+    if let Err(e) = validate_job_input(&body) {
+        return Json(ApiResponse::err(&e));
+    }
+
     let job_id = body.get("id").and_then(|v| v.as_i64());
 
     if let Some(id) = job_id {

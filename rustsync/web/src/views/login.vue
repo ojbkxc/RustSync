@@ -50,6 +50,9 @@ const doLogin = () => {
         appStore.set("user", res.data);
         router.replace("/home");
       })
+      .catch(() => {
+        // 错误已由响应拦截器处理（ElNotification）
+      })
       .finally(() => {
         loading.value = false;
       });

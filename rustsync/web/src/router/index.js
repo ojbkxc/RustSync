@@ -1,5 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import layout from "@/views/layout.vue";
+import { useAppStore } from "@/store/useAppStore";
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -78,6 +80,22 @@ const router = createRouter({
       ],
     },
   ],
+});
+
+// 路由守卫：检查登录状态
+router.beforeEach((to, from, next) => {
+  const appStore = useAppStore();
+  // 需要认证的路由（有 meta.leftIndex 标记）
+  if (to.meta.leftIndex && !appStore.user) {
+    next("/login");
+    return;
+  }
+  // 已登录用户访问登录页，重定向到首页
+  if (to.path === "/login" && appStore.user) {
+    next("/home");
+    return;
+  }
+  next();
 });
 
 export default router;

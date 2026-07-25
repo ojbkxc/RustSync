@@ -104,11 +104,62 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     let mut failed = 0;
 
     for op in &operations {
+        // 创建逐文件操作记录（与 Python CopyItem 一致）
+        let (src_rel, dst_rel, file_name, file_size, op_type) = match op {
+            SyncOperation::Copy { src, dst, size } => {
+                let name = std::path::Path::new(src)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                (src.clone(), dst.clone(), name, *size, 0i32)
+            }
+            SyncOperation::Move { src, dst, size } => {
+                let name = std::path::Path::new(src)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                (src.clone(), dst.clone(), name, *size, 2i32)
+            }
+            SyncOperation::Delete { path, is_dir: _ } => {
+                let name = std::path::Path::new(path)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                (String::new(), path.clone(), name, 0i64, 1i32)
+            }
+        };
+
+        let item_id = {
+            let db = state.db.lock().unwrap();
+            let ts = crate::service::db::now_ts();
+            db.execute(
+                "INSERT INTO job_task_item (taskId, srcPath, dstPath, isPath, fileName, fileSize, type, status, createTime)
+                 VALUES (?, ?, ?, 0, ?, ?, ?, 0, ?)",
+                rusqlite::params![task_id, src_rel, dst_rel, file_name, file_size, op_type, ts],
+            ).ok();
+            db.last_insert_rowid()
+        };
+
         match execute_operation(op, &src_path, &dst_root).await {
-            Ok(_) => success += 1,
+            Ok(_) => {
+                success += 1;
+                // 更新为成功状态
+                let db = state.db.lock().unwrap();
+                let _ = db.execute(
+                    "UPDATE job_task_item SET status=2 WHERE id=?",
+                    [item_id],
+                );
+            }
             Err(e) => {
                 failed += 1;
+                let err_msg = format!("{}", e);
                 tracing::error!("作业 {} 操作失败: {:?}, 错误: {}", job_id, op, e);
+                // 更新为失败状态
+                let db = state.db.lock().unwrap();
+                let _ = db.execute(
+                    "UPDATE job_task_item SET status=7, errMsg=? WHERE id=?",
+                    rusqlite::params![err_msg, item_id],
+                );
             }
         }
     }
@@ -325,7 +376,7 @@ async fn execute_operation(
                 tracing::debug!("复制: {} -> {}", src_full.display(), dst_full.display());
             }
         }
-        SyncOperation::Delete { path, is_dir } => {
+        SyncOperation::Delete { path, is_dir: _ } => {
             let full_path = Path::new(dst_root).join(path);
             if *is_dir {
                 if full_path.is_dir() {

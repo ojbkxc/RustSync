@@ -134,88 +134,171 @@ pub async fn delete_notify(
 }
 
 /// 发送通知到指定配置
+/// 与 Python notifyService.sendNotify 行为一致
 pub async fn send_notification(method: i32, params: &str, title: &str, body: &str) -> anyhow::Result<()> {
     let params: serde_json::Value = serde_json::from_str(params)?;
     let client = reqwest::Client::new();
 
+    // 检查 notSendNull 参数（与 Python 一致，sync_engine 调用时使用）
+    let _not_send_null = params.get("notSendNull").and_then(|v| v.as_bool()).unwrap_or(false);
+
     match method {
         0 => {
-            // 自定义 Webhook
-            if let Some(url) = params.get("url").and_then(|v| v.as_str()) {
-                let payload = serde_json::json!({
-                    "title": title,
-                    "body": body,
-                });
-                client.post(url).json(&payload).send().await?;
+            // 自定义 Webhook - 与 Python 完全一致
+            let url = params.get("url").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("自定义 Webhook 缺少 url 参数"))?;
+            let http_method = params.get("method").and_then(|v| v.as_str()).unwrap_or("POST");
+            let content_type = params.get("contentType").and_then(|v| v.as_str()).unwrap_or("application/json");
+            let need_content = params.get("needContent").and_then(|v| v.as_bool()).unwrap_or(true);
+            let title_name = params.get("titleName").and_then(|v| v.as_str()).unwrap_or("title");
+            let content_name = params.get("contentName").and_then(|v| v.as_str()).unwrap_or("content");
+
+            let mut req_data = serde_json::json!({
+                title_name: title,
+            });
+            if need_content {
+                req_data[content_name] = serde_json::Value::String(body.to_string());
+            }
+
+            let req = match http_method {
+                "GET" => client.get(url).query(&req_data.as_object().map(|m| {
+                    m.iter().map(|(k, v)| (k.as_str(), v.as_str().unwrap_or(""))).collect::<Vec<_>>()
+                }).unwrap_or_default()),
+                "POST" => {
+                    if content_type == "application/json" {
+                        client.post(url).json(&req_data)
+                    } else if content_type == "application/x-www-form-urlencoded" {
+                        client.post(url).form(&req_data)
+                    } else {
+                        return Err(anyhow::anyhow!("ContentType not allowed"));
+                    }
+                }
+                "PUT" => {
+                    if content_type == "application/json" {
+                        client.put(url).json(&req_data)
+                    } else if content_type == "application/x-www-form-urlencoded" {
+                        client.put(url).form(&req_data)
+                    } else {
+                        return Err(anyhow::anyhow!("ContentType not allowed"));
+                    }
+                }
+                _ => return Err(anyhow::anyhow!("Method not supported")),
+            };
+
+            let resp = req.send().await?;
+            if resp.status() != 200 {
+                let body_text = resp.text().await.unwrap_or_default();
+                return Err(anyhow::anyhow!("自定义 Webhook 返回非 200: {}", body_text));
             }
         }
         1 => {
-            // Server酱
-            if let Some(key) = params.get("key").and_then(|v| v.as_str()) {
+            // Server酱 - 与 Python sc.send 一致
+            if let Some(key) = params.get("sendKey").and_then(|v| v.as_str()) {
                 let url = format!("https://sctapi.ftqq.com/{}.send", key);
-                client
+                let resp = client
                     .post(&url)
                     .form(&[("title", title), ("desp", body)])
                     .send()
                     .await?;
-            }
-        }
-        2 => {
-            // 钉钉群机器人
-            if let Some(webhook) = params.get("webhook").and_then(|v| v.as_str()) {
-                let payload = serde_json::json!({
-                    "msgtype": "text",
-                    "text": {
-                        "content": format!("{}\n{}", title, body)
-                    }
-                });
-                client.post(webhook).json(&payload).send().await?;
-            }
-        }
-        3 => {
-            // 企业微信应用消息
-            if let (Some(corp_id), Some(secret), Some(agent_id), Some(to_user)) = (
-                params.get("corp_id").and_then(|v| v.as_str()),
-                params.get("secret").and_then(|v| v.as_str()),
-                params.get("agent_id").and_then(|v| v.as_str()),
-                params.get("to_user").and_then(|v| v.as_str()),
-            ) {
-                // 获取 access_token
-                let token_url = format!(
-                    "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={}&corpsecret={}",
-                    corp_id, secret
-                );
-                let token_resp: serde_json::Value = client.get(&token_url).send().await?.json().await?;
-                if let Some(token) = token_resp.get("access_token").and_then(|v| v.as_str()) {
-                    let msg_url = format!(
-                        "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={}",
-                        token
-                    );
-                    let payload = serde_json::json!({
-                        "touser": to_user,
-                        "msgtype": "text",
-                        "agentid": agent_id,
-                        "text": {
-                            "content": format!("{}\n{}", title, body)
-                        }
-                    });
-                    client.post(&msg_url).json(&payload).send().await?;
+                if resp.status() != 200 {
+                    let body_text = resp.text().await.unwrap_or_default();
+                    return Err(anyhow::anyhow!("Server酱发送失败: {}", body_text));
                 }
             }
         }
-        4 => {
-            // Lark 群机器人
-            if let Some(webhook) = params.get("webhook").and_then(|v| v.as_str()) {
+        2 => {
+            // 钉钉群机器人 - 与 Python 一致，检查 errcode
+            if let Some(webhook) = params.get("url").and_then(|v| v.as_str()) {
                 let payload = serde_json::json!({
-                    "msg_type": "text",
-                    "content": {
-                        "text": format!("{}\n{}", title, body)
+                    "msgtype": "text",
+                    "text": {
+                        "content": format!("{}\n\n{}", title, body)
                     }
                 });
-                client.post(webhook).json(&payload).send().await?;
+                let resp = client.post(webhook).json(&payload).send().await?;
+                let rst: serde_json::Value = resp.json().await?;
+                if rst.get("errcode").and_then(|v| v.as_i64()).unwrap_or(-1) != 0 {
+                    return Err(anyhow::anyhow!("钉钉发送失败: {}",
+                        rst.get("errmsg").and_then(|v| v.as_str()).unwrap_or("unknown")));
+                }
             }
         }
-        _ => {}
+        3 => {
+            // 企业微信应用消息 - 与 Python 一致，使用 corpsecret 字段名
+            let corp_id = params.get("corpid").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("企业微信缺少 corpid"))?;
+            let corp_secret = params.get("corpsecret").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("企业微信缺少 corpsecret"))?;
+            let agent_id = params.get("agentid").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("企业微信缺少 agentid"))?;
+            let to_user = params.get("touser").and_then(|v| v.as_str()).unwrap_or("@all");
+
+            // 获取 access_token
+            let token_url = format!(
+                "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={}&corpsecret={}",
+                corp_id, corp_secret
+            );
+            let token_resp: serde_json::Value = client.get(&token_url).send().await?.json().await?;
+            if token_resp.get("errcode").and_then(|v| v.as_i64()).unwrap_or(-1) != 0 {
+                return Err(anyhow::anyhow!("获取企业微信 access_token 失败: {}",
+                    token_resp.get("errmsg").and_then(|v| v.as_str()).unwrap_or("unknown")));
+            }
+            let access_token = token_resp.get("access_token").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("企业微信 access_token 为空"))?;
+
+            let msg_url = format!(
+                "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={}",
+                access_token
+            );
+            let payload = serde_json::json!({
+                "touser": to_user,
+                "msgtype": "text",
+                "agentid": agent_id,
+                "text": {
+                    "content": format!("{}\n-------------------\n{}", title, body)
+                },
+                "safe": 0,
+                "enable_id_trans": 0,
+                "enable_duplicate_check": 0
+            });
+            let resp = client.post(&msg_url).json(&payload).send().await?;
+            let rst: serde_json::Value = resp.json().await?;
+            if rst.get("errcode").and_then(|v| v.as_i64()).unwrap_or(-1) != 0 {
+                return Err(anyhow::anyhow!("发送企业微信消息失败: {}",
+                    rst.get("errmsg").and_then(|v| v.as_str()).unwrap_or("unknown")));
+            }
+        }
+        4 => {
+            // Lark 群机器人 - 与 Python 一致，使用 interactive card 格式
+            if let Some(webhook) = params.get("url").and_then(|v| v.as_str()) {
+                let payload = serde_json::json!({
+                    "msg_type": "interactive",
+                    "card": {
+                        "config": {
+                            "wide_screen_mode": true
+                        },
+                        "elements": [{
+                            "tag": "markdown",
+                            "content": body
+                        }],
+                        "header": {
+                            "template": "blue",
+                            "title": {
+                                "content": title,
+                                "tag": "plain_text"
+                            }
+                        }
+                    }
+                });
+                let resp = client.post(webhook).json(&payload).send().await?;
+                let rst: serde_json::Value = resp.json().await?;
+                if rst.get("code").and_then(|v| v.as_i64()).unwrap_or(-1) != 0 {
+                    return Err(anyhow::anyhow!("Lark 群机器人发送失败: {}",
+                        rst.get("msg").and_then(|v| v.as_str()).unwrap_or("unknown")));
+                }
+            }
+        }
+        _ => return Err(anyhow::anyhow!("不支持的通知方式: {}", method)),
     }
     Ok(())
 }

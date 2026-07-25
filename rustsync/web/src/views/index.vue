@@ -20,6 +20,8 @@ const init = () => {
         getUser().then(res => {
             appStore.set('user', res.data);
             router.replace('/home');
+        }).catch(() => {
+            router.replace('/login');
         }).finally(() => {
             loading.value = false;
         })
