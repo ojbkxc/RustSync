@@ -1,4 +1,4 @@
-﻿use axum::{
+use axum::{
     extract::State,
     Json,
 };
@@ -329,7 +329,7 @@ async fn send_email_notification(
     subject: &str,
     body: &str,
 ) -> anyhow::Result<()> {
-    use lettre::message::{Mailbox, Message, MultiPart};
+    use lettre::message::{Mailbox, Message};
     use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 
     let from_addr: Mailbox = from.parse()

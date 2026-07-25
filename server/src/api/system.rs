@@ -1,7 +1,9 @@
 use axum::{
+    extract::Query,
     response::IntoResponse,
     Json,
 };
+use serde::Deserialize;
 use crate::data::models::LanguageRequest;
 use crate::data::response::ApiResponse;
 use crate::service::i18n;
@@ -56,9 +58,6 @@ pub async fn spa_fallback(
     // 回退到 index.html（SPA）
     index().await
 }
-
-use axum::extract::Query;
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct LogQuery {

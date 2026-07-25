@@ -40,6 +40,9 @@ md-5 = "0.10"
 # Cron 调度
 cron = "0.12"
 
+# 字节缓冲
+bytes = "1"
+
 # 存储驱动
 async-trait = "0.1"
 # 阿里云盘 - 通过 reqwest + OAuth

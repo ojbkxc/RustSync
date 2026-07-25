@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { delNotify, getNotifyList, postAddNotify, putEditNotify, putEnableNotify } from "@/api/notify";
 import notifyMethod, { notifyMethodKeys } from "@/utils/notifyMethod";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { Message } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -250,7 +251,11 @@ onMounted(() => {
     <div v-else class="card-box">
       <div class="card-item" v-for="item in dataList" :key="item.id">
         <div class="card-item-top">
-          <el-image :src="`/notify/${item.method}.png`" fit="contain" class="notify-logo" />
+          <el-image :src="`/notify/${item.method}.${item.method === 5 ? 'svg' : 'png'}`" fit="contain" class="notify-logo">
+            <template #error>
+              <el-icon :size="60" color="#409EFF"><Message /></el-icon>
+            </template>
+          </el-image>
           <div class="notify-info">
             <div class="card-item-user">{{ notifyMethod(item.method) }}</div>
             <div :class="`card-item-enable enable-${item.enable == 1 ? 'enable' : 'disable'}`">
