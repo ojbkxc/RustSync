@@ -1,0 +1,94 @@
+name: CI - Magisk
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches:
+      - main
+
+jobs:
+  build-magisk:
+    name: 编译 Magisk 模块
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 获取版本号
+        id: version
+        run: |
+          VERSION=$(cat rustsync/version.txt 2>/dev/null | head -1 | cut -d, -f1 | sed 's/^v//' || echo '0.5.0')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: rustsync/web/package-lock.json
+
+      - name: 构建前端
+        working-directory: rustsync/web
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          sed -i "s/__version_placeholder__/$VERSION/g" src/locales/zh-CN.yaml
+          sed -i "s/__version_placeholder__/$VERSION/g" src/locales/en.yaml
+          npm ci
+          npm run build
+
+      - name: 复制前端到 static
+        run: |
+          mkdir -p server/static
+          cp -r rustsync/web/dist/* server/static/
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: 构建 Rust (arm64-v8a)
+        working-directory: server
+        run: |
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../dist/bin/arm64-v8a
+          cp target/aarch64-linux-android/release/rustsync-server ../dist/bin/arm64-v8a/rustsync_server
+
+      - name: 验证 Rust 二进制
+        run: |
+          file dist/bin/arm64-v8a/rustsync_server
+          test -f dist/bin/arm64-v8a/rustsync_server
+
+      - name: 打包 Magisk 模块
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          MAGISK_TMP=$(mktemp -d)
+          cp module.prop customize.sh service.sh "$MAGISK_TMP/"
+          cp -r META-INF "$MAGISK_TMP/"
+
+          mkdir -p "$MAGISK_TMP/system/bin"
+          cp dist/bin/arm64-v8a/rustsync_server "$MAGISK_TMP/system/bin/rustsync_server"
+
+          mkdir -p "$MAGISK_TMP/static"
+          cp -r server/static/* "$MAGISK_TMP/static/"
+
+          sed -i "s/^version=.*/version=${VERSION}/" "$MAGISK_TMP/module.prop"
+          VERSION_CODE=$(echo "$VERSION" | tr -d '.')
+          sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
+
+          (cd "$MAGISK_TMP" && zip -qr "$GITHUB_WORKSPACE/RustSync-magisk-${VERSION}.zip" .)
+          rm -rf "$MAGISK_TMP"
+
+      - name: 上传 Magisk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RustSync-Magisk
+          path: RustSync-magisk-*.zip
+          if-no-files-found: error
+          retention-days: 7
