@@ -57,7 +57,7 @@ fn clear_snapshots_by_engine(db: &std::sync::MutexGuard<rusqlite::Connection>, e
     );
 }
 
-/// 检查是否为 RustSync 引擎 - 与 Python _requireTaoSync 一致
+/// 检查是否为 RustSync 引擎 - 与 Python _requireRustSync 一致
 fn require_rustsync_engine(db: &std::sync::MutexGuard<rusqlite::Connection>, engine_id: i64) -> Result<(), String> {
     let (engine_type, system_key): (Option<String>, Option<String>) = db
         .query_row(
@@ -525,7 +525,7 @@ pub async fn storage_get(
             let engine_id: i64 = params.get("engineId").and_then(|s| s.parse().ok()).unwrap_or(0);
             let db = state.db.lock().unwrap();
 
-            // 与 Python _requireTaoSync 一致：检查引擎类型
+            // 与 Python _requireRustSync 一致：检查引擎类型
             if let Err(e) = require_rustsync_engine(&db, engine_id) {
                 return Json(ApiResponse::err(&e));
             }
@@ -614,7 +614,7 @@ pub async fn storage_post(
             let config_str = serde_json::to_string(&config).unwrap_or_default();
 
             let db = state.db.lock().unwrap();
-            // 与 Python _requireTaoSync 一致：检查引擎类型
+            // 与 Python _requireRustSync 一致：检查引擎类型
             if let Err(e) = require_rustsync_engine(&db, engine_id) {
                 return Json(ApiResponse::err(&e));
             }

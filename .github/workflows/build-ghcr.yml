@@ -46,6 +46,9 @@ jobs:
             type=ref,event=branch
             type=sha,prefix=sha-
             type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=Rust 重写版多平台自动化存储同步服务
+            org.opencontainers.image.title=RustSync
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
