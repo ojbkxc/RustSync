@@ -69,10 +69,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/storage/sftp-test", post(api::engine::sftp_test))
         .route("/api/storage/sftp-browse", post(api::engine::sftp_browse))
         // 作业
-        .route("/api/jobs", get(api::job::list_jobs))
-        .route("/api/jobs", post(api::job::create_job))
-        .route("/api/jobs/:id", put(api::job::update_job))
-        .route("/api/jobs/:id", delete(api::job::delete_job))
+        .route("/api/jobs", get(api::job::list_jobs).post(api::job::create_job))
+        .route("/api/jobs/:id", put(api::job::update_job).delete(api::job::delete_job))
         .route("/api/jobs/:id/run", post(api::job::run_job))
         .route("/api/jobs/:id/pause", post(api::job::pause_job))
         .route("/api/jobs/:id/resume", post(api::job::resume_job))
