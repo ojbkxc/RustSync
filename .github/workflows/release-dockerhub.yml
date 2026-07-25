@@ -94,7 +94,7 @@ jobs:
       - name: Update VERSION file
         run: |
           echo "${{ steps.next_version.outputs.new_version }}" > VERSION
-          echo "${{ steps.next_version.outputs.new_tag }}" > rustsync/version.txt
+          echo "${{ steps.next_version.outputs.new_tag }},latest" > rustsync/version.txt
 
       - name: Commit and create tag
         run: |
