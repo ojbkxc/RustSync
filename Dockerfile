@@ -15,7 +15,7 @@ COPY rustsync/web/ ./
 RUN npm run build
 
 # ---- Rust 服务端构建 ----
-FROM rust:1.85-alpine AS server-builder
+FROM rust:1.86-alpine AS server-builder
 RUN apk add --no-cache musl-dev
 WORKDIR /app
 COPY server/Cargo.toml ./
