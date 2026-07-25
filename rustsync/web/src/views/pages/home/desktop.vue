@@ -1,10 +1,11 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { listEngines, deleteJob, listJobs, createJob, updateJob } from "@/api";
 import fileSizeFilter from "./components/fileSizeFilter.vue";
 import pathSelect from "./components/pathSelect.vue";
-import menuRefresh from "./components/menuRefresh.vue";
+import menuRefresh from "./components/menuRefresh.vue"
+import SkeletonTable from "@/components/SkeletonTable.vue";
 import { parseSize, parseTime } from "@/utils/utils";
 import { isFileSizeBoundaryValid, isFileSizeRangeValid } from "@/utils/fileSizeFilter";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -427,6 +428,7 @@ onMounted(() => {
       <menuRefresh :autoRefresh="false" :freshInterval="5273" :loading="loading" @getData="getJobList" />
     </div>
 
+    <SkeletonTable v-if="loading && jobData.dataList.length === 0" :rows="5" :cols="4" />
     <el-table class="job-table" :data="jobData.dataList" height="calc(100% - 117px)" v-loading="loading">
       <el-table-column type="expand">
         <template #default="props">

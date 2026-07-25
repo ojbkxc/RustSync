@@ -9,7 +9,8 @@ import { parseSize, parseTime } from "@/utils/utils";
 import { isFileSizeBoundaryValid, isFileSizeRangeValid } from "@/utils/fileSizeFilter";
 import fileSizeFilter from "./components/fileSizeFilter.vue";
 import menuRefresh from "./components/menuRefresh.vue";
-import pathSelect from "./components/pathSelect.vue";
+import pathSelect from "./components/pathSelect.vue"
+import Skeleton from "@/components/Skeleton.vue";
 
 const router = useRouter();
 const { t } = useI18n();
@@ -389,6 +390,7 @@ onMounted(getJobList);
     </div>
 
     <div class="job-list" v-loading="loading">
+      <Skeleton v-if="loading && jobData.dataList.length === 0" :rows="3" />
       <div v-if="!loading && jobData.dataList.length === 0" class="mobile-empty">
         <div>{{ $t("home.mobileEmpty") }}</div>
         <el-button type="primary" :icon="Plus" @click="addShow">{{ $t("home.newJob") }}</el-button>
