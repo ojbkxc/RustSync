@@ -469,7 +469,7 @@ fn mime_guess(name: &str) -> String {
         "css" => "text/css",
         "js" | "ts" => "application/javascript",
         "sh" | "bash" => "application/x-sh",
-        "py" => "text/x-python",
+        
         "rs" => "text/x-rust",
         "java" | "kt" => "text/x-java",
         "png" => "image/png",

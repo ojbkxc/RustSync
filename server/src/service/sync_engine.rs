@@ -7,7 +7,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     // 从数据库加载作业配置
     let state = crate::state::get_global_state();
     let job = {
-        let db = state.db.lock().unwrap();
+        let db = state.db.get().unwrap();
         db.query_row(
             "SELECT id, srcPath, dstPath, alistId, method, sourceMode, exclude, minFileSize, maxFileSize
              FROM job WHERE id=?",
@@ -35,7 +35,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
 
     // 创建任务记录
     let task_id = {
-        let db = state.db.lock().unwrap();
+        let db = state.db.get().unwrap();
         let ts = crate::service::db::now_ts();
         db.execute(
             "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
@@ -90,7 +90,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     if operations.is_empty() {
         tracing::info!("作业 {}: 无需同步", job_id);
         // 更新任务状态为成功
-        let db = state.db.lock().unwrap();
+        let db = state.db.get().unwrap();
         let _ = db.execute(
             "UPDATE job_task SET status=2, taskNum=? WHERE id=?",
             rusqlite::params![serde_json::json!({"total": 0, "success": 0}).to_string(), task_id],
@@ -104,7 +104,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     let mut failed = 0;
 
     for op in &operations {
-        // 创建逐文件操作记录（与 Python CopyItem 一致）
+        // 创建逐文件操作记录
         let (src_rel, dst_rel, file_name, file_size, op_type) = match op {
             SyncOperation::Copy { src, dst, size } => {
                 let name = std::path::Path::new(src)
@@ -130,7 +130,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
         };
 
         let item_id = {
-            let db = state.db.lock().unwrap();
+            let db = state.db.get().unwrap();
             let ts = crate::service::db::now_ts();
             db.execute(
                 "INSERT INTO job_task_item (taskId, srcPath, dstPath, isPath, fileName, fileSize, type, status, createTime)
@@ -144,7 +144,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
             Ok(_) => {
                 success += 1;
                 // 更新为成功状态
-                let db = state.db.lock().unwrap();
+                let db = state.db.get().unwrap();
                 let _ = db.execute(
                     "UPDATE job_task_item SET status=2 WHERE id=?",
                     [item_id],
@@ -155,7 +155,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
                 let err_msg = format!("{}", e);
                 tracing::error!("作业 {} 操作失败: {:?}, 错误: {}", job_id, op, e);
                 // 更新为失败状态
-                let db = state.db.lock().unwrap();
+                let db = state.db.get().unwrap();
                 let _ = db.execute(
                     "UPDATE job_task_item SET status=7, errMsg=? WHERE id=?",
                     rusqlite::params![err_msg, item_id],
@@ -165,7 +165,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     }
 
     // 更新任务统计
-    let db = state.db.lock().unwrap();
+    let db = state.db.get().unwrap();
     let task_status = if failed == 0 { 2 } else if success > 0 { 3 } else { 6 };
     let _ = db.execute(
         "UPDATE job_task SET status=?, taskNum=? WHERE id=?",

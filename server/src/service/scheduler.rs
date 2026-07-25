@@ -58,7 +58,7 @@ impl Scheduler {
             // 每次循环从数据库重新读取作业配置，确保 cron 变更等能及时生效
             let current_job = {
                 let state = crate::state::get_global_state();
-                let db = state.db.lock().unwrap();
+                let db = state.db.get().unwrap();
                 db.query_row(
                     "SELECT enable, isCron, start_date, interval,
                             year, month, day, week, day_of_week, hour, minute, second
@@ -163,7 +163,7 @@ impl Scheduler {
 /// 初始化所有启用的作业
 pub async fn init_all_jobs(state: &crate::state::SharedState) -> anyhow::Result<()> {
     let jobs: Vec<Job> = {
-        let db = state.db.lock().unwrap();
+        let db = state.db.get().unwrap();
         let mut stmt = db.prepare(
             "SELECT id, enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT,
                     useCacheS, scanIntervalS, method, sourceMode, interval, isCron,

@@ -1,9 +1,9 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from "vue";
 import logo from "@/views/components/logo.vue";
 import lightDark from "./components/lightDark.vue";
 import locale from "./components/locale.vue";
-import { login, resetPwd } from "@/api/user";
+import { login, resetPassword } from "@/api";
 import { useI18n } from "vue-i18n";
 import { User, Lock, Key } from "@element-plus/icons-vue";
 import Motion from "@/utils/motion";
@@ -127,7 +127,7 @@ const submitReset = () => {
   resetFormRef.value.validate((valid) => {
     if (!valid) return;
     loading.value = true;
-    resetPwd(resetForm.value)
+    resetPassword(resetForm.value)
       .then(() => {
         closeReset();
         ElMessage({

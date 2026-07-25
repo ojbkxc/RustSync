@@ -39,7 +39,7 @@ pub fn load_languages() -> anyhow::Result<()> {
         }
     }
 
-    // 从 data/language.txt 恢复上次的语言设置（与 Python 一致）
+    // 从 data/language.txt 恢复上次的语言设置
     let config = crate::config::get_config();
     let lang_file = std::path::Path::new(&config.data_dir).join("language.txt");
     if lang_file.exists() {
@@ -164,7 +164,6 @@ pub fn get_current_lang() -> String {
 }
 
 /// 设置当前语言并持久化到 data/language.txt
-/// 与 Python language() 函数行为一致
 pub fn set_current_lang(lang: &str) {
     let supported = LANG_PACKS.read().unwrap();
     let lang_key = if supported.contains_key(lang) {
@@ -174,7 +173,7 @@ pub fn set_current_lang(lang: &str) {
     };
     *CURRENT_LANG.write().unwrap() = lang_key.clone();
 
-    // 持久化到 data/language.txt（与 Python 一致）
+    // 持久化到 data/language.txt
     let config = crate::config::get_config();
     let lang_file = std::path::Path::new(&config.data_dir).join("language.txt");
     let _ = std::fs::write(&lang_file, &lang_key);

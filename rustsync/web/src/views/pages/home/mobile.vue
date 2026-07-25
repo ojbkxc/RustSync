@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { CaretRight, CircleCheck, CircleClose, Delete, Edit, Plus, View } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { alistGet, jobDelete, jobGetJob, jobPost, jobPut } from "@/api/job";
+import { listEngines, deleteJob, listJobs, createJob, updateJob } from "@/api";
 import { parseSize, parseTime } from "@/utils/utils";
 import { isFileSizeBoundaryValid, isFileSizeRangeValid } from "@/utils/fileSizeFilter";
 import fileSizeFilter from "./components/fileSizeFilter.vue";
@@ -141,7 +141,7 @@ const splitPaths = (value) => String(value || "").split(":").filter(Boolean);
 
 const getJobList = () => {
   loading.value = true;
-  jobGetJob(params.value)
+  listJobs(params.value)
     .then((res) => {
       jobData.value = res.data;
     })
@@ -152,7 +152,7 @@ const getJobList = () => {
 
 const ensureAlistList = async () => {
   if (alistList.value.length > 0) return;
-  const res = await alistGet();
+  const res = await listEngines();
   alistList.value = res.data;
 };
 
@@ -177,7 +177,7 @@ const runAllJob = () => {
     type: "warning",
   }).then(() => {
     btnLoading.value = true;
-    jobPut({ pause: null })
+    updateJob({ pause: null })
       .then(showSuccess)
       .finally(() => {
         btnLoading.value = false;
@@ -191,7 +191,7 @@ const runJob = (row) => {
     return;
   }
   btnLoading.value = true;
-  jobPut({
+  updateJob({
     id: row.id,
     pause: null,
   })
@@ -207,7 +207,7 @@ const runJob = (row) => {
 const setJobEnabled = (row, enabled) => {
   const execute = () => {
     btnLoading.value = true;
-    jobPut({
+    updateJob({
       id: row.id,
       pause: !enabled,
     })
@@ -239,10 +239,7 @@ const removeJob = (row) => {
     type: "warning",
   }).then(() => {
     btnLoading.value = true;
-    jobDelete({
-      id: row.id,
-      pause: true,
-    })
+    deleteJob(row.id)
       .then((res) => {
         showSuccess(res);
         getJobList();
@@ -351,7 +348,7 @@ const submit = () => {
     postData.exclude = postData.exclude.join(":");
     postData.sourceMode = Number(postData.sourceMode) === 1 ? 1 : 0;
     editLoading.value = true;
-    jobPost(postData)
+    createJob(postData)
       .then((res) => {
         showSuccess(res);
         closeEditor();

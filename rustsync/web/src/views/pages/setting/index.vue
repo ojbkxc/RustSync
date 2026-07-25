@@ -1,6 +1,6 @@
-<script setup>
+﻿<script setup>
 import { computed, ref } from "vue";
-import { editPwd } from "@/api/user";
+import { changePassword } from "@/api";
 import { parseTime } from "@/utils/utils";
 import { useAppStore } from "@/store/useAppStore";
 import { ElMessage } from "element-plus";
@@ -53,7 +53,7 @@ const resetPasswd = () => {
   resetFormRef.value.validate((valid) => {
     if (!valid) return;
     loading.value = true;
-    editPwd(resetForm.value)
+    changePassword(resetForm.value)
       .then((res) => {
         ElMessage({
           message: res.msg || t("user.success"),

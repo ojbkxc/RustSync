@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { delNotify, getNotifyList, postAddNotify, putEditNotify, putEnableNotify } from "@/api/notify";
+import { listNotifies, addNotify, updateNotify, toggleNotify, deleteNotify, testNotify } from "@/api";
 import notifyMethod, { notifyMethodKeys } from "@/utils/notifyMethod";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Message } from "@element-plus/icons-vue";
@@ -63,7 +63,7 @@ const editRule = computed(() => [
 
 const getData = () => {
   loading.value = true;
-  getNotifyList()
+  listNotifies()
     .then((res) => {
       dataList.value = res.data;
     })
@@ -153,7 +153,7 @@ const closeShow = () => {
 
 const enableNotify = (notifyId, enable) => {
   enableLoading.value = true;
-  putEnableNotify(notifyId, enable)
+  toggleNotify(notifyId, enable)
     .then((res) => {
       ElMessage({
         message: res.msg,
@@ -172,7 +172,7 @@ const submit = () => {
     const dt = JSON.parse(JSON.stringify(editData.value));
     dt.params = JSON.stringify(dt.params);
     editLoading.value = true;
-    const request = editFlag.value ? putEditNotify(dt) : postAddNotify(dt);
+    const request = editFlag.value ? updateNotify(dt.id, dt) : addNotify(dt);
     request
       .then((res) => {
         ElMessage({
@@ -195,7 +195,7 @@ const tstCuTrueDo = (item) => {
     it.params = JSON.stringify(it.params);
   }
   delete it.enable;
-  postAddNotify(it)
+  testNotify(it)
     .then(() => {
       ElMessage({
         message: t("notify.testSent"),
@@ -226,7 +226,7 @@ const delCu = (id) => {
     type: "warning",
   }).then(() => {
     deleteLoading.value = true;
-    delNotify(id)
+    deleteNotify(id)
       .then((res) => {
         ElMessage({
           message: res.msg,

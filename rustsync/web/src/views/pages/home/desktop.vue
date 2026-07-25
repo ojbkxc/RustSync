@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { alistGet, jobDelete, jobGetJob, jobPost, jobPut } from "@/api/job";
+import { listEngines, deleteJob, listJobs, createJob, updateJob } from "@/api";
 import fileSizeFilter from "./components/fileSizeFilter.vue";
 import pathSelect from "./components/pathSelect.vue";
 import menuRefresh from "./components/menuRefresh.vue";
@@ -148,7 +148,7 @@ const sizeFilterText = (job) => {
 
 const getJobList = () => {
   loading.value = true;
-  jobGetJob(params.value)
+  listJobs(params.value)
     .then((res) => {
       jobData.value = res.data;
     })
@@ -158,7 +158,7 @@ const getJobList = () => {
 };
 
 const getAlistList = () => {
-  return alistGet().then((res) => {
+  return listEngines().then((res) => {
     alistList.value = res.data;
   });
 };
@@ -170,7 +170,7 @@ const runAllJob = () => {
     type: "warning",
   }).then(() => {
     btnLoading.value = true;
-    jobPut({
+    updateJob({
       pause: null,
     })
       .then((res) => {
@@ -210,7 +210,7 @@ const putJob = (row, pause = null) => {
     return;
   }
   btnLoading.value = true;
-  jobPut({
+  updateJob({
     id: row.id,
     pause,
   })
@@ -341,7 +341,7 @@ const submit = () => {
     postData.exclude = postData.exclude.join(":");
     postData.sourceMode = Number(postData.sourceMode) === 1 ? 1 : 0;
     editLoading.value = true;
-    jobPost(postData)
+    createJob(postData)
       .then((res) => {
         ElMessage({
           message: res.msg,
@@ -358,7 +358,7 @@ const submit = () => {
 
 const submitDisable = () => {
   editLoading.value = true;
-  const request = disableIsDel.value ? jobDelete(disableCu.value) : jobPut(disableCu.value);
+  const request = disableIsDel.value ? deleteJob(disableCu.value.id) : jobPut(disableCu.value);
   request
     .then((res) => {
       ElMessage({

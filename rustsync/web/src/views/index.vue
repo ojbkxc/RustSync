@@ -1,6 +1,6 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { getUser } from '@/api/user';
+import { getUser } from '@/api';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useAppStore } from '@/store/useAppStore';
