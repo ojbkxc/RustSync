@@ -1,1 +1,133 @@
-dXNlIGF4dW06OnsNCiAgICByb3V0aW5nOjp7Z2V0LCBwb3N0LCBwdXQsIGRlbGV0ZX0sDQogICAgUm91dGVyLA0KfTsNCnVzZSBzdGQ6Om5ldDo6U29ja2V0QWRkcjsNCnVzZSB0b3dlcl9odHRwOjpjb3JzOjpDb3JzTGF5ZXI7DQoNCnVzZSBjcmF0ZTo6Y29uZmlnOjpnZXRfbGlzdGVuX3BvcnQ7DQp1c2UgY3JhdGU6OnN0YXRlOjpBcHBTdGF0ZTsNCg0KbW9kIGFwaTsNCm1vZCBjb25maWc7DQptb2QgZGF0YTsNCm1vZCBkcml2ZXI7DQptb2Qgc2VydmljZTsNCm1vZCBzdGF0ZTsNCg0KYXN5bmMgZm4gZW5zdXJlX2RpcnMoY29uZmlnOiAmY29uZmlnOjpDb25maWcpIHsNCiAgICBsZXQgXyA9IHRva2lvOjpmczo6Y3JlYXRlX2Rpcl9hbGwoJmNvbmZpZy5kYXRhX2RpcikuYXdhaXQ7DQogICAgbGV0IF8gPSB0b2tpbzo6ZnM6OmNyZWF0ZV9kaXJfYWxsKCZjb25maWcubG9nX2RpcikuYXdhaXQ7DQp9DQoNCiNbdG9raW86Om1haW5dDQphc3luYyBmbiBtYWluKCkgLT4gYW55aG93OjpSZXN1bHQ8KCk+IHsNCiAgICB0cmFjaW5nX3N1YnNjcmliZXI6OmZtdDo6aW5pdCgpOw0KDQogICAgbGV0IGNvbmZpZyA9IGNvbmZpZzo6Z2V0X2NvbmZpZygpOw0KICAgIGVuc3VyZV9kaXJzKCZjb25maWcpLmF3YWl0Ow0KDQogICAgbGV0IHN0YXRlID0gQXBwU3RhdGU6Om5ld19zaGFyZWQoY29uZmlnLmNsb25lKCkpPzsNCg0KICAgIGxldCBnZW5lcmF0ZWRfcGFzc3dvcmQgPSB7DQogICAgICAgIGxldCBjb25uID0gc3RhdGUuZGIuZ2V0KCk/Ow0KICAgICAgICBzZXJ2aWNlOjpkYjo6aW5pdF9kYXRhYmFzZSgmY29ubiwgJmNvbmZpZyk/DQogICAgfTsNCg0KICAgIHNlcnZpY2U6OmkxOG46OmxvYWRfbGFuZ3VhZ2VzKCk/Ow0KDQogICAgbGV0IGxpc3Rlbl9wb3J0ID0gZ2V0X2xpc3Rlbl9wb3J0KCk7DQoNCiAgICBsZXQgc2NoZWR1bGVyX3N0YXRlID0gc3RhdGUuY2xvbmUoKTsNCiAgICB0b2tpbzo6c3Bhd24oYXN5bmMgbW92ZSB7DQogICAgICAgIGlmIGxldCBFcnIoZSkgPSBzZXJ2aWNlOjpzY2hlZHVsZXI6OmluaXRfYWxsX2pvYnMoJnNjaGVkdWxlcl9zdGF0ZSkuYXdhaXQgew0KICAgICAgICAgICAgdHJhY2luZzo6ZXJyb3IhKCLliJ3lp4vljJbkvZzkuJrlpLHotKU6IHt9IiwgZSk7DQogICAgICAgIH0NCiAgICB9KTsNCg0KICAgIC8vID09PT09PT09PT0g5peg6ZyA6K6k6K+B55qE6Lev55SxID09PT09PT09PT0NCiAgICBsZXQgcHVibGljX3JvdXRlcyA9IFJvdXRlcjo6bmV3KCkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2F1dGgvbG9naW4iLCBwb3N0KHNlcnZpY2U6OmF1dGg6OmxvZ2luKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2F1dGgvcmVzZXQtcGFzc3dvcmQiLCBwdXQoc2VydmljZTo6YXV0aDo6cmVzZXRfcGFzc3dvcmQpKQ0KICAgICAgICAucm91dGUoIi9hcGkvYXV0aC9sb2dvdXQiLCBkZWxldGUoc2VydmljZTo6YXV0aDo6bG9nb3V0KSkNCiAgICAgICAgLnJvdXRlKCIvIiwgZ2V0KGFwaTo6c3lzdGVtOjppbmRleCkpOw0KDQogICAgLy8gPT09PT09PT09PSDpnIDopoHorqTor4HnmoTot6/nlLEgPT09PT09PT09PQ0KICAgIGxldCBhdXRoX3JvdXRlcyA9IFJvdXRlcjo6bmV3KCkNCiAgICAgICAgLy8g55So5oi3DQogICAgICAgIC5yb3V0ZSgiL2FwaS91c2VyIiwgZ2V0KHNlcnZpY2U6OmF1dGg6OmdldF91c2VyKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL3VzZXIvcGFzc3dvcmQiLCBwdXQoc2VydmljZTo6YXV0aDo6Y2hhbmdlX3Bhc3N3b3JkKSkNCiAgICAgICAgLy8g5byV5pOODQogICAgICAgIC5yb3V0ZSgiL2FwaS9lbmdpbmVzIiwgZ2V0KGFwaTo6ZW5naW5lOjpsaXN0X2VuZ2luZXMpLnBvc3QoYXBpOjplbmdpbmU6OmFkZF9lbmdpbmUpKQ0KICAgICAgICAucm91dGUoIi9hcGkvZW5naW5lcy86aWQiLCBwdXQoYXBpOjplbmdpbmU6OnVwZGF0ZV9lbmdpbmUpLmRlbGV0ZShhcGk6OmVuZ2luZTo6ZGVsZXRlX2VuZ2luZSkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9lbmdpbmVzLzppZC9icm93c2UiLCBnZXQoYXBpOjplbmdpbmU6OmJyb3dzZV9lbmdpbmUpKQ0KICAgICAgICAvLyDlrZjlgqgNCiAgICAgICAgLnJvdXRlKCIvYXBpL3N0b3JhZ2UiLCBnZXQoYXBpOjplbmdpbmU6Omxpc3Rfc3RvcmFnZSkucG9zdChhcGk6OmVuZ2luZTo6YWRkX3N0b3JhZ2UpKQ0KICAgICAgICAucm91dGUoIi9hcGkvc3RvcmFnZS86aWQiLCBwdXQoYXBpOjplbmdpbmU6OnVwZGF0ZV9zdG9yYWdlKS5kZWxldGUoYXBpOjplbmdpbmU6OmRlbGV0ZV9zdG9yYWdlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL3N0b3JhZ2UvbG9jYWwtYnJvd3NlIiwgZ2V0KGFwaTo6ZW5naW5lOjpsb2NhbF9icm93c2UpKQ0KICAgICAgICAucm91dGUoIi9hcGkvc3RvcmFnZS9zbWItZGlzY292ZXIiLCBnZXQoYXBpOjplbmdpbmU6OnNtYl9kaXNjb3ZlcikpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9zdG9yYWdlL3NmdHAtdGVzdCIsIHBvc3QoYXBpOjplbmdpbmU6OnNmdHBfdGVzdCkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9zdG9yYWdlL3NmdHAtYnJvd3NlIiwgcG9zdChhcGk6OmVuZ2luZTo6c2Z0cF9icm93c2UpKQ0KICAgICAgICAvLyDkvZzkuJoNCiAgICAgICAgLnJvdXRlKCIvYXBpL2pvYnMiLCBnZXQoYXBpOjpqb2I6Omxpc3Rfam9icykpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9qb2JzIiwgcG9zdChhcGk6OmpvYjo6Y3JlYXRlX2pvYikpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9qb2JzLzppZCIsIHB1dChhcGk6OmpvYjo6dXBkYXRlX2pvYikpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9qb2JzLzppZCIsIGRlbGV0ZShhcGk6OmpvYjo6ZGVsZXRlX2pvYikpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9qb2JzLzppZC9ydW4iLCBwb3N0KGFwaTo6am9iOjpydW5fam9iKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2pvYnMvOmlkL3BhdXNlIiwgcG9zdChhcGk6OmpvYjo6cGF1c2Vfam9iKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2pvYnMvOmlkL3Jlc3VtZSIsIHBvc3QoYXBpOjpqb2I6OnJlc3VtZV9qb2IpKQ0KICAgICAgICAucm91dGUoIi9hcGkvam9icy86aWQvY3VycmVudCIsIGdldChhcGk6OmpvYjo6am9iX2N1cnJlbnQpKQ0KICAgICAgICAucm91dGUoIi9hcGkvam9icy86aWQvdGFza3MiLCBnZXQoYXBpOjpqb2I6OmpvYl90YXNrcykpDQogICAgICAgIC5yb3V0ZSgiL2FwaS90YXNrcy86aWQiLCBkZWxldGUoYXBpOjpqb2I6OmRlbGV0ZV90YXNrKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL3Rhc2tzLzppZC9pdGVtcyIsIGdldChhcGk6OmpvYjo6dGFza19pdGVtcykpDQogICAgICAgIC8vIOmAmuefpQ0KICAgICAgICAucm91dGUoIi9hcGkvbm90aWZpY2F0aW9ucyIsIGdldChhcGk6Om5vdGlmeTo6bGlzdF9ub3RpZmllcykucG9zdChhcGk6Om5vdGlmeTo6YWRkX25vdGlmeSkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9ub3RpZmljYXRpb25zL3Rlc3QiLCBwb3N0KGFwaTo6bm90aWZ5Ojp0ZXN0X25vdGlmeSkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9ub3RpZmljYXRpb25zLzppZCIsIHB1dChhcGk6Om5vdGlmeTo6dXBkYXRlX25vdGlmeSkuZGVsZXRlKGFwaTo6bm90aWZ5OjpkZWxldGVfbm90aWZ5KSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL25vdGlmaWNhdGlvbnMvOmlkL3RvZ2dsZSIsIHB1dChhcGk6Om5vdGlmeTo6dG9nZ2xlX25vdGlmeSkpDQogICAgICAgIC8vIOaWh+S7tueuoeeQhg0KICAgICAgICAucm91dGUoIi9hcGkvZmlsZXMvbGlzdCIsIGdldChhcGk6OmZpbGVzOjpsaXN0X2ZpbGVzKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL3JlYWQiLCBnZXQoYXBpOjpmaWxlczo6cmVhZF9maWxlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL3dyaXRlIiwgcG9zdChhcGk6OmZpbGVzOjp3cml0ZV9maWxlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL21rZGlyIiwgcG9zdChhcGk6OmZpbGVzOjpjcmVhdGVfZGlyKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL3RvdWNoIiwgcG9zdChhcGk6OmZpbGVzOjpjcmVhdGVfZmlsZSkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9maWxlcy9kZWxldGUiLCBwb3N0KGFwaTo6ZmlsZXM6OmRlbGV0ZV9maWxlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL3JlbmFtZSIsIHBvc3QoYXBpOjpmaWxlczo6cmVuYW1lX2ZpbGUpKQ0KICAgICAgICAucm91dGUoIi9hcGkvZmlsZXMvY29weSIsIHBvc3QoYXBpOjpmaWxlczo6Y29weV9maWxlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL2luZm8iLCBnZXQoYXBpOjpmaWxlczo6ZmlsZV9pbmZvKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL2ZpbGVzL3VwbG9hZCIsIHBvc3QoYXBpOjpmaWxlczo6dXBsb2FkX2ZpbGUpKQ0KICAgICAgICAucm91dGUoIi9hcGkvZmlsZXMvZG93bmxvYWQiLCBnZXQoYXBpOjpmaWxlczo6ZG93bmxvYWRfZmlsZSkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9maWxlcy9kaXJzaXplIiwgZ2V0KGFwaTo6ZmlsZXM6OmRpcl9zaXplKSkNCiAgICAgICAgLy8g57O757ufDQogICAgICAgIC5yb3V0ZSgiL2FwaS9zeXN0ZW0vbGFuZ3VhZ2UiLCBnZXQoYXBpOjpzeXN0ZW06OmdldF9sYW5ndWFnZSkucG9zdChhcGk6OnN5c3RlbTo6c2V0X2xhbmd1YWdlKSkNCiAgICAgICAgLnJvdXRlKCIvYXBpL3N5c3RlbS9sb2dzIiwgZ2V0KGFwaTo6c3lzdGVtOjpsb2dfbGlzdCkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9zeXN0ZW0vbG9ncy9yZWFkIiwgZ2V0KGFwaTo6c3lzdGVtOjpsb2dfcmVhZCkpDQogICAgICAgIC5yb3V0ZSgiL2FwaS9zeXN0ZW0vbG9ncy9jbGVhciIsIHBvc3QoYXBpOjpzeXN0ZW06OmxvZ19jbGVhcikpDQogICAgICAgIC53aXRoX3N0YXRlKHN0YXRlLmNsb25lKCkpDQogICAgICAgIC5yb3V0ZV9sYXllcihheHVtOjptaWRkbGV3YXJlOjpmcm9tX2ZuX3dpdGhfc3RhdGUoc3RhdGUuY2xvbmUoKSwgc2VydmljZTo6YXV0aDo6cmVxdWlyZV9hdXRoKSk7DQoNCiAgICBsZXQgYXBwID0gUm91dGVyOjpuZXcoKQ0KICAgICAgICAubWVyZ2UocHVibGljX3JvdXRlcykNCiAgICAgICAgLm1lcmdlKGF1dGhfcm91dGVzKQ0KICAgICAgICAucm91dGUoIi8qcGF0aCIsIGdldChhcGk6OnN5c3RlbTo6c3BhX2ZhbGxiYWNrKSkNCiAgICAgICAgLndpdGhfc3RhdGUoc3RhdGUpDQogICAgICAgIC5sYXllcihDb3JzTGF5ZXI6OnBlcm1pc3NpdmUoKSk7DQoNCiAgICBsZXQgYWRkciA9IFNvY2tldEFkZHI6OmZyb20oKFswLCAwLCAwLCAwXSwgbGlzdGVuX3BvcnQpKTsNCg0KICAgIGxldCBzdWNjZXNzX21zZyA9IHNlcnZpY2U6OmkxOG46OnRfZm9ybWF0KA0KICAgICAgICAicnVubmluZ19zdWNjZXNzIiwNCiAgICAgICAgJlsoInVybCIsICZmb3JtYXQhKCJodHRwOi8vMTI3LjAuMC4xOnt9LyIsIGxpc3Rlbl9wb3J0KSldLA0KICAgICk7DQogICAgdHJhY2luZzo6aW5mbyEoInt9Iiwgc3VjY2Vzc19tc2cpOw0KDQogICAgaWYgbGV0IFNvbWUocHdkKSA9IGdlbmVyYXRlZF9wYXNzd29yZCB7DQogICAgICAgIHRyYWNpbmc6OmluZm8hKCLliJ3lp4vnrqHnkIblkZjlr4bnoIE6IHt9IiwgcHdkKTsNCiAgICB9DQoNCiAgICBheHVtOjpTZXJ2ZXI6OmJpbmQoJmFkZHIpDQogICAgICAgIC5zZXJ2ZShhcHAuaW50b19tYWtlX3NlcnZpY2UoKSkNCiAgICAgICAgLmF3YWl0PzsNCg0KICAgIE9rKCgpKQ0KfQ0K
+use axum::{
+    routing::{get, post, put, delete},
+    Router,
+};
+use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
+
+use crate::config::get_listen_port;
+use crate::state::AppState;
+
+mod api;
+mod config;
+mod data;
+mod driver;
+mod service;
+mod state;
+
+async fn ensure_dirs(config: &config::Config) {
+    let _ = tokio::fs::create_dir_all(&config.data_dir).await;
+    let _ = tokio::fs::create_dir_all(&config.log_dir).await;
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
+    let config = config::get_config();
+    ensure_dirs(&config).await;
+
+    let state = AppState::new_shared(config.clone())?;
+
+    let generated_password = {
+        let conn = state.db.get()?;
+        service::db::init_database(&conn, &config)?
+    };
+
+    service::i18n::load_languages()?;
+
+    let listen_port = get_listen_port();
+
+    let scheduler_state = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = service::scheduler::init_all_jobs(&scheduler_state).await {
+            tracing::error!("初始化作业失败: {}", e);
+        }
+    });
+
+    // ========== 无需认证的路由 ==========
+    let public_routes = Router::new()
+        .route("/api/auth/login", post(service::auth::login))
+        .route("/api/auth/reset-password", put(service::auth::reset_password))
+        .route("/api/auth/logout", delete(service::auth::logout))
+        .route("/", get(api::system::index));
+
+    // ========== 需要认证的路由 ==========
+    let auth_routes = Router::new()
+        // 用户
+        .route("/api/user", get(service::auth::get_user))
+        .route("/api/user/password", put(service::auth::change_password))
+        // 引擎
+        .route("/api/engines", get(api::engine::list_engines).post(api::engine::add_engine))
+        .route("/api/engines/:id", put(api::engine::update_engine).delete(api::engine::delete_engine))
+        .route("/api/engines/:id/browse", get(api::engine::browse_engine))
+        // 存储
+        .route("/api/storage", get(api::engine::list_storage).post(api::engine::add_storage))
+        .route("/api/storage/:id", put(api::engine::update_storage).delete(api::engine::delete_storage))
+        .route("/api/storage/local-browse", get(api::engine::local_browse))
+        .route("/api/storage/smb-discover", get(api::engine::smb_discover))
+        .route("/api/storage/sftp-test", post(api::engine::sftp_test))
+        .route("/api/storage/sftp-browse", post(api::engine::sftp_browse))
+        // 作业
+        .route("/api/jobs", get(api::job::list_jobs))
+        .route("/api/jobs", post(api::job::create_job))
+        .route("/api/jobs/:id", put(api::job::update_job))
+        .route("/api/jobs/:id", delete(api::job::delete_job))
+        .route("/api/jobs/:id/run", post(api::job::run_job))
+        .route("/api/jobs/:id/pause", post(api::job::pause_job))
+        .route("/api/jobs/:id/resume", post(api::job::resume_job))
+        .route("/api/jobs/:id/current", get(api::job::job_current))
+        .route("/api/jobs/:id/tasks", get(api::job::job_tasks))
+        .route("/api/tasks/:id", delete(api::job::delete_task))
+        .route("/api/tasks/:id/items", get(api::job::task_items))
+        // 通知
+        .route("/api/notifications", get(api::notify::list_notifies).post(api::notify::add_notify))
+        .route("/api/notifications/test", post(api::notify::test_notify))
+        .route("/api/notifications/:id", put(api::notify::update_notify).delete(api::notify::delete_notify))
+        .route("/api/notifications/:id/toggle", put(api::notify::toggle_notify))
+        // 文件管理
+        .route("/api/files/list", get(api::files::list_files))
+        .route("/api/files/read", get(api::files::read_file))
+        .route("/api/files/write", post(api::files::write_file))
+        .route("/api/files/mkdir", post(api::files::create_dir))
+        .route("/api/files/touch", post(api::files::create_file))
+        .route("/api/files/delete", post(api::files::delete_file))
+        .route("/api/files/rename", post(api::files::rename_file))
+        .route("/api/files/copy", post(api::files::copy_file))
+        .route("/api/files/info", get(api::files::file_info))
+        .route("/api/files/upload", post(api::files::upload_file))
+        .route("/api/files/download", get(api::files::download_file))
+        .route("/api/files/dirsize", get(api::files::dir_size))
+        // 系统
+        .route("/api/system/language", get(api::system::get_language).post(api::system::set_language))
+        .route("/api/system/logs", get(api::system::log_list))
+        .route("/api/system/logs/read", get(api::system::log_read))
+        .route("/api/system/logs/clear", post(api::system::log_clear))
+        .with_state(state.clone())
+        .route_layer(axum::middleware::from_fn_with_state(state.clone(), service::auth::require_auth));
+
+    let app = Router::new()
+        .merge(public_routes)
+        .merge(auth_routes)
+        .route("/*path", get(api::system::spa_fallback))
+        .with_state(state)
+        .layer(CorsLayer::permissive());
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], listen_port));
+
+    let success_msg = service::i18n::t_format(
+        "running_success",
+        &[("url", &format!("http://127.0.0.1:{}/", listen_port))],
+    );
+    tracing::info!("{}", success_msg);
+
+    if let Some(pwd) = generated_password {
+        tracing::info!("初始管理员密码: {}", pwd);
+    }
+
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await?;
+
+    Ok(())
+}
