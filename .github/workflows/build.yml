@@ -11,17 +11,27 @@ on:
         required: true
         default: 'v1.0.0'
 
+env:
+  APP_NAME: RustSync
+  DOCKER_USER: ojbkxc
+  DOCKER_NAME: rustsync
+
 jobs:
-  build:
+  # ============================================================
+  # 获取版本号
+  # ============================================================
+  get-version:
+    name: 获取版本号
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      - name: Update version
+      - name: 确定版本号
         id: version
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
@@ -29,23 +39,24 @@ jobs:
           else
             TAG_VERSION=${GITHUB_REF#refs/tags/}
           fi
-          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
-
           VERSION=${TAG_VERSION#v}
+          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $TAG_VERSION ($VERSION)"
 
-          IFS='.' read -ra PARTS <<< "$VERSION"
-          VERSION_CODE=0
-          for i in "${!PARTS[@]}"; do
-            MULT=$((10 ** (6 - i * 3)))
-            VERSION_CODE=$((VERSION_CODE + PARTS[i] * MULT))
-          done
-          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
-
-          sed -i "s/^version=.*/version=$VERSION/" module.prop
-          sed -i "s/^versionCode=.*/versionCode=$VERSION_CODE/" module.prop
-
-          echo "Updated to $TAG_VERSION (code: $VERSION_CODE)"
+  # ============================================================
+  # 构建前端（所有平台共享）
+  # ============================================================
+  build-frontend:
+    name: 构建前端
+    runs-on: ubuntu-latest
+    needs: [get-version]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -54,111 +65,470 @@ jobs:
           cache: npm
           cache-dependency-path: rustsync/web/package-lock.json
 
-      - name: Build frontend
+      - name: 构建前端
         working-directory: rustsync/web
         run: |
-          VERSION=${{ steps.version.outputs.version }}
           sed -i "s/__version_placeholder__/$VERSION/g" src/locales/zh-CN.yaml
           sed -i "s/__version_placeholder__/$VERSION/g" src/locales/en.yaml
           npm ci
           npm run build
-          echo "Frontend built"
 
-      - name: Prepare frontend for packaging
+      - name: 上传前端 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+          retention-days: 1
+
+  # ============================================================
+  # Android APK (arm64-v8a + armeabi-v7a)
+  # ============================================================
+  build-android-apk:
+    name: 构建 Android APK
+    runs-on: ubuntu-latest
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 准备前端资源
         run: |
           cd rustsync
           rm -rf front
           cp -r web/dist front
           test -f front/index.html
-          echo "Frontend copied to front/"
 
-      - name: Setup Rust toolchain
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi
 
       - name: Install cargo-ndk
         run: |
           cargo install cargo-ndk
           rustup target add aarch64-linux-android
+          rustup target add armv7-linux-androideabi
 
-      - name: Copy frontend to Rust static directory
+      - name: 复制前端到 Rust static
         run: |
           mkdir -p server/static
           cp -r rustsync/front/* server/static/
-          echo "Frontend copied to server/static/"
 
-      - name: Build Rust server (aarch64)
+      - name: 构建 Rust (arm64-v8a)
         working-directory: server
         run: |
           cargo ndk --target aarch64-linux-android --platform 21 -- build --release
-          mkdir -p ../system/bin
-          cp target/aarch64-linux-android/release/rustsync-server ../system/bin/rustsync_server
-          echo "Rust binary built: rustsync_server"
+          mkdir -p ../rustsync/bin/arm64-v8a
+          cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
+          echo "arm64-v8a built"
 
-      - name: Package static files for Magisk
+      - name: 构建 Rust (armeabi-v7a)
+        working-directory: server
         run: |
-          mkdir -p static
-          cp -r rustsync/front/* static/
-          echo "Static files packaged for Magisk module"
+          cargo ndk --target armv7-linux-androideabi --platform 21 -- build --release
+          mkdir -p ../rustsync/bin/armeabi-v7a
+          cp target/armv7-linux-androideabi/release/rustsync-server ../rustsync/bin/armeabi-v7a/rustsync_server
+          echo "armeabi-v7a built"
 
-      - name: Verify build artifact
+      - name: 验证 Rust 二进制
         run: |
-          if [ ! -f "system/bin/rustsync_server" ]; then
-            echo "::error::Rust 二进制构建产物不存在"
+          file rustsync/bin/arm64-v8a/rustsync_server
+          file rustsync/bin/armeabi-v7a/rustsync_server
+          test -f rustsync/bin/arm64-v8a/rustsync_server
+          test -f rustsync/bin/armeabi-v7a/rustsync_server
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libffi-dev libssl-dev libsqlite3-dev libbz2-dev libreadline-dev \
+            libltdl-dev libtool-bin \
+            ccache git wget unzip zip \
+            openjdk-17-jdk build-essential
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
+
+      - name: 安装 Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "buildozer==1.5.0" "python-for-android==2024.01.21" "Cython==0.29.34" virtualenv
+
+      - name: 缓存 Buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+          key: buildozer-${{ runner.os }}-v2-p4a2024.01.21-py311-${{ hashFiles('rustsync/buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-v2-p4a2024.01.21-py311-
+
+      - name: 编译 Android Debug APK
+        working-directory: rustsync
+        run: |
+          PYTHONWARNINGS="ignore:Unable to find acceptable character detection:UserWarning" buildozer -v android debug
+
+      - name: 整理 APK 产物
+        run: |
+          mkdir -p dist
+          apk_path=$(find rustsync/bin -maxdepth 1 -name '*.apk' -print -quit)
+          if [ -z "$apk_path" ]; then
+            echo "::error::未找到 APK 产物"
             exit 1
           fi
-          echo "Rust 二进制已构建: system/bin/rustsync_server"
-          if [ -d "static" ] && [ "$(ls -A static 2>/dev/null)" ]; then
-            echo "前端静态文件已打包"
-          fi
-          echo "构建产物验证通过"
+          cp "$apk_path" "dist/${APP_NAME}-${VERSION}-android-debug.apk"
+          echo "APK: dist/${APP_NAME}-${VERSION}-android-debug.apk"
 
-      - name: Package
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          zip -r RustSync-Magisk-${VERSION}.zip . \
-            -x ".git/*" \
-            -x ".github/*" \
-            -x ".gitignore" \
-            -x ".gitmodules" \
-            -x "rustsync/*" \
-            -x "server/src/*" \
-            -x "server/target/*" \
-            -x "server/Cargo.*"
-
-      - name: Upload artifact
+      - name: 上传 APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RustSync-Magisk-${{ steps.version.outputs.version }}
-          path: RustSync-Magisk-${{ steps.version.outputs.version }}.zip
+          name: dist-android
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Create Release
+  # ============================================================
+  # Linux 独立二进制 (amd64 + arm64, musl 静态链接)
+  # ============================================================
+  build-linux:
+    name: 构建 Linux (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            arch: amd64
+          - target: aarch64-unknown-linux-musl
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 复制前端到 static
+        run: |
+          mkdir -p server/static
+          cp -r rustsync/web/dist/* server/static/
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: 安装 musl-tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y musl-tools
+          # aarch64 musl 交叉编译需要 gcc-aarch64-linux-gnu
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+
+      - name: 构建 Rust
+        working-directory: server
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: 打包
+        run: |
+          mkdir -p dist
+          cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
+          cd dist
+          tar czf "../${APP_NAME}-${VERSION}-linux-${{ matrix.arch }}.tar.gz" rustsync-server
+          cd ..
+
+      - name: 上传 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux-${{ matrix.arch }}
+          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-linux-${{ matrix.arch }}.tar.gz
+          retention-days: 1
+
+  # ============================================================
+  # Windows 独立二进制 (amd64)
+  # ============================================================
+  build-windows:
+    name: 构建 Windows
+    runs-on: windows-latest
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 复制前端到 static
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path server/static
+          Copy-Item -Recurse rustsync/web/dist/* server/static/
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: 构建 Rust
+        working-directory: server
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: 打包
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe dist/rustsync-server.exe
+          Compress-Archive -Path dist/rustsync-server.exe -DestinationPath "$env:APP_NAME-$env:VERSION-windows-amd64.zip"
+
+      - name: 上传 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows-amd64
+          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-windows-amd64.zip
+          retention-days: 1
+
+  # ============================================================
+  # macOS 独立二进制 (amd64 + arm64)
+  # ============================================================
+  build-macos:
+    name: 构建 macOS (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            arch: amd64
+            runner: macos-13
+          - target: aarch64-apple-darwin
+            arch: arm64
+            runner: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 复制前端到 static
+        run: |
+          mkdir -p server/static
+          cp -r rustsync/web/dist/* server/static/
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: 构建 Rust
+        working-directory: server
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: 打包
+        run: |
+          mkdir -p dist
+          cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
+          cd dist
+          tar czf "../${APP_NAME}-${VERSION}-darwin-${{ matrix.arch }}.tar.gz" rustsync-server
+          cd ..
+
+      - name: 上传 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-darwin-${{ matrix.arch }}
+          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-darwin-${{ matrix.arch }}.tar.gz
+          retention-days: 1
+
+  # ============================================================
+  # Docker 多架构镜像 (amd64 + arm64)
+  # ============================================================
+  build-docker:
+    name: 构建 Docker (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    needs: [get-version, build-frontend]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+      TAG: ${{ needs.get-version.outputs.tag }}
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: 替换平台名称
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
+      - name: 构建 Docker 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: rustsync/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: |
+            type=image,name=${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: 导出 digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build-image.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: 上传 digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  # ============================================================
+  # 合并 Docker 镜像并推送
+  # ============================================================
+  merge-docker:
+    name: 合并 Docker 镜像
+    runs-on: ubuntu-latest
+    needs: [get-version, build-docker]
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - name: 下载全部 digest
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: 创建清单并推送
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ env.VERSION }} \
+            -t ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:latest \
+            $(printf '${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}@sha256:%s ' *)
+
+  # ============================================================
+  # 创建 GitHub Release
+  # ============================================================
+  create-release:
+    name: 发布 Release
+    runs-on: ubuntu-latest
+    needs: [get-version, build-android-apk, build-linux, build-windows, build-macos, merge-docker]
+    env:
+      TAG: ${{ needs.get-version.outputs.tag }}
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载全部构建产物
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: 列出产物
+        run: ls -la dist/
+
+      - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: RustSync ${{ steps.version.outputs.tag }}
+          tag_name: ${{ env.TAG }}
+          name: RustSync ${{ env.TAG }}
           body: |
-            ## RustSync ${{ steps.version.outputs.version }}
+            ## RustSync ${{ env.VERSION }}
 
-            Rust 重写版 Magisk 模块，开机自启动 RustSync 同步服务。
+            Rust 重写版多平台同步服务。
 
-            ### 功能
-            - 开机自启动 RustSync 同步服务
-            - 进程守护（崩溃自动重启）
-            - Web 管理面板 (端口 8023)
-            - 默认密码 `admin`
-            - 支持 Magisk v20.4+
+            ### 下载
+            | 平台 | 文件 |
+            |------|------|
+            | Android APK | `RustSync-${{ env.VERSION }}-android-debug.apk` |
+            | Linux amd64 | `RustSync-${{ env.VERSION }}-linux-amd64.tar.gz` |
+            | Linux arm64 | `RustSync-${{ env.VERSION }}-linux-arm64.tar.gz` |
+            | Windows amd64 | `RustSync-${{ env.VERSION }}-windows-amd64.zip` |
+            | macOS amd64 | `RustSync-${{ env.VERSION }}-darwin-amd64.tar.gz` |
+            | macOS arm64 | `RustSync-${{ env.VERSION }}-darwin-arm64.tar.gz` |
+            | Docker | `ojbkxc/rustsync:${{ env.VERSION }}` |
 
-            ### 安装
-            1. 下载 `RustSync-Magisk-${{ steps.version.outputs.version }}.zip`
-            2. 通过 Magisk 刷入
-            3. 重启设备
-            4. 浏览器访问 `http://设备IP:8023`
+            ### 使用
+            - **APK**: 安装后打开 App，WebView 自动加载管理面板
+            - **Linux/macOS**: `tar xzf` 解压后运行 `./rustsync-server`
+            - **Windows**: 解压后运行 `rustsync-server.exe`
+            - **Docker**: `docker run -p 8023:8023 -v data:/app/data ojbkxc/rustsync:${{ env.VERSION }}`
 
-            ### 配置
-            - 配置目录：`/data/adb/rustsync/data/`
-            - 日志文件：`/data/adb/rustsync/rustsync.log`
-          files: RustSync-Magisk-${{ steps.version.outputs.version }}.zip
+            ### 默认
+            - 端口: `8023`
+            - 密码: `admin`
+          files: dist/*
           draft: false
           prerelease: false

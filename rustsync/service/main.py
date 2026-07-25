@@ -1,24 +1,22 @@
 """
 RustSync 前台服务入口（运行在 :pythonservice 进程）。
 
-业务程序（Tornado 8023，0.0.0.0）与日记页（Tornado 8024，仅 127.0.0.1）
-在此进程同时运行，作为前台服务，避免主进程（PythonActivity）被 ColorOS
-冻结后端口不可访问。8024 仅供本机 WebView 加载日记页，不对外暴露。
-
-p4a 的 PythonService 运行在独立进程，sys.path 与工作目录需显式设置。
+启动 Rust 后端（8023）并运行日记页（Tornado 8024）。
+Rust 二进制处理所有业务逻辑，Python 仅负责日志收集、进程守护和日记页。
 """
 import os
 import sys
 import time
 import logging
 import threading
+import subprocess
 import asyncio
 import warnings
 
 warnings.filterwarnings('ignore', message='.*character detection dependency.*')
 
 # ======================================================================
-# 路径设置：服务进程需显式将 app 目录加入 sys.path
+# 路径设置
 # ======================================================================
 _app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _app_dir not in sys.path:
@@ -26,6 +24,32 @@ if _app_dir not in sys.path:
 os.chdir(_app_dir)
 os.makedirs('data', exist_ok=True)
 os.makedirs('data/log', exist_ok=True)
+
+# ======================================================================
+# 检测 CPU ABI，选择正确的 Rust 二进制
+# ======================================================================
+def _detect_abi():
+    try:
+        from jnius import autoclass
+        Build = autoclass('android.os.Build')
+        abi = Build.CPU_ABI
+        if abi:
+            return abi
+    except Exception:
+        pass
+    try:
+        import platform
+        machine = platform.machine()
+        if machine in ('aarch64', 'arm64'):
+            return 'arm64-v8a'
+        if machine in ('armv7l', 'armv8l'):
+            return 'armeabi-v7a'
+    except Exception:
+        pass
+    return 'arm64-v8a'
+
+_ABI = _detect_abi()
+_RUST_BINARY = os.path.join(_app_dir, 'bin', _ABI, 'rustsync_server')
 
 # ======================================================================
 # 内存日志缓冲
@@ -97,11 +121,6 @@ class _StdoutCapture:
 # ======================================================================
 # 文件日志后备
 # ======================================================================
-# 候选日志路径，按优先级尝试：
-# 1. app 专属外部目录 getExternalFilesDir（无需权限、始终可写、用户可见，
-#    路径为 /storage/emulated/0/Android/data/<包名>/files/rustsync_debug.log）
-# 2. 上面路径的硬编码形式（包名 com.github.rustsync），jnius 不可用时兜底
-# 3. 应用内部 cwd（始终可写，但需 root 才能查看）
 _file_fp = None
 _log_paths = []
 try:
@@ -139,6 +158,8 @@ _file_log('INFO', '=== RustSync 服务进程启动 ===')
 _file_log('INFO', f'Python: {sys.version}')
 _file_log('INFO', f'app_dir: {_app_dir}')
 _file_log('INFO', f'cwd: {os.getcwd()}')
+_file_log('INFO', f'ABI: {_ABI}')
+_file_log('INFO', f'Rust binary: {_RUST_BINARY}')
 
 _logger = logging.getLogger()
 _logger.addHandler(MemoryLogHandler())
@@ -179,18 +200,10 @@ sys.excepthook = _excepthook
 
 
 # ======================================================================
-# 业务模块导入
+# 日记页 Tornado 应用（8024，仅 127.0.0.1）
 # ======================================================================
-from tornado.web import Application, RequestHandler, StaticFileHandler
+from tornado.web import Application, RequestHandler
 
-from common.config import getConfig
-from controller import systemController, jobController, notifyController
-from service.system import onStart
-
-
-# ======================================================================
-# 日志页面
-# ======================================================================
 _LOG_PAGE_HTML = """<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -401,12 +414,6 @@ function poll() {
     .finally(function() { setTimeout(poll, 1500); });
 }
 
-// 阻止后退键退出 Activity：8024 的 / 即日记页，p4a webview bootstrap
-// 加载 http://127.0.0.1:8024/ 后由 main_android.py 再次 loadUrl(/)。
-// 这里用带 hash 的 URL（与无 hash 的当前页 URL 不同，确保 pushState
-// 生成真实历史项，避免某些 WebView 对同 URL pushState 的优化）压入
-// 多个缓冲项，形成较深历史栈；后退触发 popstate 时立即补回缓冲项，
-// 使后退键只在日记页内部循环，触发双击退出逻辑而非直接退出。
 (function() {
   var n = 0;
   function push() {
@@ -440,77 +447,137 @@ class LogDataHandler(RequestHandler):
         self.write({'entries': entries, 'last_seq': last_seq})
 
 
-# ======================================================================
-# 业务应用
-# ======================================================================
-FRONTEND_PATH = _app_dir
-
-
-class MainIndex(RequestHandler):
-    def get(self):
-        # 8023 业务前端入口：直接渲染 RustSync 前端页面。
-        # 日记页已拆分到 8024（仅 127.0.0.1），由 Android WebView 单独加载，
-        # 浏览器访问 8023 不受影响。
-        with open(os.path.join(FRONTEND_PATH, "front", "index.html"),
-                  'r', encoding='utf-8') as f:
-            html = f.read()
-        self.set_header('Content-Type', 'text/html; charset=utf-8')
-        self.write(html)
-
-
-# 日记页专用端口：仅绑定 127.0.0.1，供 Android WebView 加载，不对外暴露
-LOG_PORT = 8024
-
-
-def make_business_app(server_cfg):
-    # 8023：业务接口 + RustSync 前端（0.0.0.0，允许外部设备访问）
-    return Application([
-        (r"/svr/noAuth/login", systemController.Login),
-        (r"/svr/user", systemController.User),
-        (r"/svr/language", systemController.Language),
-        (r"/svr/alist", jobController.Alist),
-        (r"/svr/storage", jobController.Storage),
-        (r"/svr/job", jobController.Job),
-        (r"/svr/notify", notifyController.Notify),
-        (r"/", MainIndex),
-        (r"/(.*)", StaticFileHandler,
-         {"path": os.path.join(FRONTEND_PATH, "front")})
-    ], cookie_secret=server_cfg['passwdStr'])
-
-
 def make_log_app():
-    # 8024：仅日记页（127.0.0.1）。/ 渲染日记页，/__log__ 提供日志数据
     return Application([
         (r"/__log__", LogDataHandler),
         (r"/", LogIndexHandler),
     ])
 
 
+# ======================================================================
+# Rust 二进制进程管理
+# ======================================================================
+_rust_process = None
+LOG_PORT = 8024
+BUSINESS_PORT = 8023
+
+
+def _start_rust():
+    """启动 Rust 后端进程"""
+    global _rust_process
+    if not os.path.exists(_RUST_BINARY):
+        _file_log('ERROR', f'Rust 二进制不存在: {_RUST_BINARY}')
+        _append_log('ERROR', f'Rust 二进制不存在: {_RUST_BINARY}')
+        return False
+
+    # 确保可执行
+    os.chmod(_RUST_BINARY, 0o755)
+
+    env = os.environ.copy()
+    env['RUSTSYNC_PORT'] = str(BUSINESS_PORT)
+    env['RUSTSYNC_DATA_DIR'] = os.path.join(_app_dir, 'data')
+    env['RUSTSYNC_LOG_DIR'] = os.path.join(_app_dir, 'data', 'log')
+    env['RUSTSYNC_DB_PATH'] = os.path.join(_app_dir, 'data', 'rustsync.db')
+
+    try:
+        _rust_process = subprocess.Popen(
+            [_RUST_BINARY],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            cwd=_app_dir,
+        )
+        _file_log('INFO', f'Rust 后端已启动 (PID={_rust_process.pid})')
+        _append_log('INFO', f'Rust 后端已启动 (PID={_rust_process.pid}, ABI={_ABI})')
+        return True
+    except Exception as e:
+        _file_log('ERROR', f'启动 Rust 后端失败: {e}')
+        _append_log('ERROR', f'启动 Rust 后端失败: {e}')
+        return False
+
+
+def _read_rust_output():
+    """读取 Rust 进程输出并记录到日志"""
+    if _rust_process is None:
+        return
+    try:
+        while True:
+            line = _rust_process.stdout.readline()
+            if not line:
+                break
+            try:
+                text = line.decode('utf-8', errors='replace').rstrip('\n\r')
+            except Exception:
+                text = str(line)
+            if text:
+                _append_log('INFO', text)
+    except Exception:
+        pass
+
+
+def _monitor_rust():
+    """监控 Rust 进程，崩溃时自动重启"""
+    while True:
+        if _rust_process is None:
+            time.sleep(2)
+            if not _start_rust():
+                time.sleep(5)
+            continue
+        ret = _rust_process.poll()
+        if ret is not None:
+            _file_log('WARNING', f'Rust 后端已退出 (code={ret})，3秒后重启...')
+            _append_log('WARNING', f'Rust 后端已退出 (code={ret})，3秒后重启...')
+            _rust_process = None
+            time.sleep(3)
+        else:
+            time.sleep(1)
+
+
 async def main():
     _file_log('INFO', '服务进程正在初始化...')
-    onStart.init()
 
-    cfg = getConfig()
-    server_cfg = cfg['server']
-    port = int(server_cfg['port'])
+    # 确保 Rust 二进制目录存在
+    if not os.path.exists(_RUST_BINARY):
+        _file_log('ERROR', f'Rust 二进制不存在: {_RUST_BINARY}')
+        _append_log('ERROR', f'Rust 二进制不存在: {_RUST_BINARY}')
+        # 尝试备用路径
+        alt_binary = os.path.join(_app_dir, 'rustsync_server')
+        if os.path.exists(alt_binary):
+            global _RUST_BINARY
+            _RUST_BINARY = alt_binary
+            _file_log('INFO', f'使用备用路径: {_RUST_BINARY}')
 
-    business_app = make_business_app(server_cfg)
-    # 8023 业务端口监听 0.0.0.0，允许外部设备访问；服务进程作为前台服务不会被冻结
-    business_app.listen(port, address='0.0.0.0')
-    _file_log('INFO', f'业务服务已启动: http://0.0.0.0:{port}/')
+    # 启动 Rust 后端
+    if not _start_rust():
+        _file_log('CRITICAL', '无法启动 Rust 后端')
+        _safe_exit(1)
+        return
 
-    # 8024 日记页仅绑定 127.0.0.1，仅供本机 WebView 访问，不对外暴露
+    # 启动 Rust 进程守护线程
+    threading.Thread(target=_monitor_rust, daemon=True).start()
+
+    # 启动 Rust 输出读取线程
+    threading.Thread(target=_read_rust_output, daemon=True).start()
+
+    # 日记页 Tornado（8024，仅 127.0.0.1）
+    from tornado.httpserver import HTTPServer
+    from tornado.netutil import bind_sockets
+
     log_app = make_log_app()
-    log_app.listen(LOG_PORT, address='127.0.0.1')
+    sockets = bind_sockets(LOG_PORT, address='127.0.0.1')
+    server = HTTPServer(log_app)
+    server.add_sockets(sockets)
     _file_log('INFO', f'日记页已启动: http://127.0.0.1:{LOG_PORT}/')
+    _append_log('INFO', f'日记页已启动: http://127.0.0.1:{LOG_PORT}/')
 
-    logger = logging.getLogger()
-    logger.critical(f'启动成功_/_Running at http://127.0.0.1:{port}/ (业务), http://127.0.0.1:{LOG_PORT}/ (日记)')
+    _append_log('CRITICAL',
+                f'RustSync 启动成功 (Rust 模式, ABI={_ABI}) '
+                f'| 业务: http://127.0.0.1:{BUSINESS_PORT}/ '
+                f'| 日记: http://127.0.0.1:{LOG_PORT}/')
 
     await asyncio.Event().wait()
 
 
-# p4a PythonService 直接执行此文件，不通过 __main__
 try:
     asyncio.run(main())
 except Exception as e:
