@@ -376,7 +376,7 @@ async fn execute_operation(
                 tracing::debug!("复制: {} -> {}", src_full.display(), dst_full.display());
             }
         }
-        SyncOperation::Delete { path, is_dir: _ } => {
+        SyncOperation::Delete { path, is_dir } => {
             let full_path = Path::new(dst_root).join(path);
             if *is_dir {
                 if full_path.is_dir() {

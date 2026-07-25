@@ -48,7 +48,7 @@ fn validate_job_input(body: &serde_json::Value) -> Result<(), String> {
             if v != 0 && v != 1 {
                 return Err(i18n::t("source_mode_invalid"));
             }
-        } else if let Some(b) = source_mode.as_bool() {
+        } else if let Some(_b) = source_mode.as_bool() {
             // bool 允许
         } else {
             return Err(i18n::t("source_mode_invalid"));
