@@ -315,7 +315,7 @@ engine:
   clientIdRule: 请输入 Client ID
   clientSecretRule: 请输入 Client Secret
   refreshTokenRule: 请输入 Refresh Token
-  mountDeleteConfirm: "将删除目录"{name}"，使用该目录的作业将无法运行，仍要删除吗？"
+  mountDeleteConfirm: "将删除目录\"{name}\"，使用该目录的作业将无法运行，仍要删除吗？"
   drivers:
     local: 本地目录
     smb: SMB
