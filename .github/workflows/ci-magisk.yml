@@ -1,4 +1,4 @@
-name: CI - Magisk
+name: Magisk
 
 on:
   pull_request:
@@ -21,6 +21,7 @@ jobs:
         run: |
           VERSION=$(cat rustsync/version.txt 2>/dev/null | head -1 | cut -d, -f1 | sed 's/^v//' || echo '0.5.0')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,7 +54,7 @@ jobs:
           cargo install cargo-ndk
           rustup target add aarch64-linux-android
 
-      - name: 构建 Rust (arm64-v8a)
+      - name: 构建 Rust (aarch64)
         working-directory: server
         run: |
           cargo ndk --target aarch64-linux-android --platform 21 -- build --release
@@ -84,6 +85,7 @@ jobs:
 
           (cd "$MAGISK_TMP" && zip -qr "$GITHUB_WORKSPACE/RustSync-magisk-${VERSION}.zip" .)
           rm -rf "$MAGISK_TMP"
+          echo "Magisk: RustSync-magisk-${VERSION}.zip"
 
       - name: 上传 Magisk artifact
         uses: actions/upload-artifact@v4
