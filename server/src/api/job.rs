@@ -145,7 +145,7 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 
 /// POST /api/jobs
 pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut body): Json<serde_json::Value>) -> axum::response::Response {
-    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::bad_request(&e)).into_response(); }
+    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<()>::bad_request(&e)).into_response(); }
     if body.get("id").is_some() { return update_job_inner(state, body).await; }
     let conn = state.db.get().unwrap();
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -162,7 +162,7 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut
 /// PUT /api/jobs/:id
 pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(mut body): Json<serde_json::Value>) -> axum::response::Response {
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
-    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::bad_request(&e)).into_response(); }
+    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<()>::bad_request(&e)).into_response(); }
     update_job_inner(state, body).await
 }
 
@@ -173,7 +173,7 @@ async fn update_job_inner(state: crate::state::SharedState, body: serde_json::Va
         "SELECT enable, isCron, alistId, srcPath, dstPath, method, exclude, minFileSize, maxFileSize FROM job WHERE id=?", [job_id],
         |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?, row.get::<_, Option<i64>>(2)?, row.get::<_, String>(3)?, row.get::<_, String>(4)?, row.get::<_, i32>(5)?, row.get::<_, Option<String>>(6)?, row.get::<_, Option<i64>>(7)?, row.get::<_, Option<i64>>(8)?)),
     ).unwrap_or((0, 0, None, String::new(), String::new(), 0, None, None, None));
-    if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::conflict(&i18n::t("disable_then_edit"))).into_response(); }
+    if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::<()>::conflict(&i18n::t("disable_then_edit"))).into_response(); }
     drop(conn);
     let new_alist_id = body.get("alistId").and_then(|v| v.as_i64());
     let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("");
