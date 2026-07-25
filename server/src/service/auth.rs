@@ -174,11 +174,11 @@ fn extract_token(headers: &axum::http::HeaderMap) -> Option<String> {
 }
 
 pub async fn require_auth<B>(
-    State(state): State<crate::state::SharedState>,
     headers: axum::http::HeaderMap,
     mut request: axum::http::Request<B>,
     next: axum::middleware::Next<B>,
 ) -> axum::response::Response {
+    let state = crate::state::get_global_state();
     if let Some(token) = extract_token(&headers) {
         if let Some(claims) = validate_jwt(&token, &state.config.jwt_secret) {
             request.extensions_mut().insert(claims);
