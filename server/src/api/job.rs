@@ -671,38 +671,40 @@ pub async fn job_put(
 
     match pause {
         Some(true) => {
-            // 禁用/中止作业
+            // 禁用/中止作业 - 与 Python pauseJob/abortJob 一致
             let job_id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
-            let db = state.db.lock().unwrap();
-            if body.get("abort").is_some() {
-                // 中止作业 - 与 Python abortJob 一致
-                let _ = db.execute(
-                    "UPDATE job_task SET status=7 WHERE jobId=? AND status IN (0, 1)", [job_id],
-                );
-                Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已中止"))
-            } else {
-                // 禁用作业 - 与 Python pauseJob 一致
-                let is_cron: i32 = db.query_row("SELECT isCron FROM job WHERE id=?", [job_id], |row| row.get(0)).unwrap_or(0);
-                if is_cron == 2 {
-                    return Json(ApiResponse::err(&i18n::t("cannot_disable_manual_job")));
+            let is_abort = body.get("abort").is_some();
+            // 数据库操作放在 block 内，确保 MutexGuard 在 .await 之前释放
+            let need_stop = {
+                let db = state.db.lock().unwrap();
+                if is_abort {
+                    let _ = db.execute(
+                        "UPDATE job_task SET status=7 WHERE jobId=? AND status IN (0, 1)", [job_id],
+                    );
+                    false
+                } else {
+                    let is_cron: i32 = db.query_row("SELECT isCron FROM job WHERE id=?", [job_id], |row| row.get(0)).unwrap_or(0);
+                    if is_cron == 2 {
+                        return Json(ApiResponse::err(&i18n::t("cannot_disable_manual_job")));
+                    }
+                    let _ = db.execute("UPDATE job SET enable=0 WHERE id=?", [job_id]);
+                    let _ = db.execute("UPDATE job_task SET status=4 WHERE status IN (0, 1) AND jobId=?", [job_id]);
+                    true
                 }
-                let _ = db.execute("UPDATE job SET enable=0 WHERE id=?", [job_id]);
-                // 中止正在执行的任务
-                let _ = db.execute("UPDATE job_task SET status=4 WHERE status IN (0, 1) AND jobId=?", [job_id]);
-                drop(db);
-                // 停止调度器
+            }; // MutexGuard dropped here
+            if need_stop {
                 crate::service::scheduler::get_scheduler().stop_job(job_id).await;
-                Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已禁用"))
             }
+            Json(ApiResponse::ok_msg(serde_json::json!({}), if is_abort { "作业已中止" } else { "作业已禁用" }))
         }
         Some(false) => {
             // 启用作业 - 与 Python continueJob 一致
             let job_id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
-            {
+            // 数据库操作放在 block 内，确保 MutexGuard 在 .await 之前释放
+            let job = {
                 let db = state.db.lock().unwrap();
                 let _ = db.execute("UPDATE job SET enable=1 WHERE id=?", [job_id]);
-                // 启动调度器
-                let job = db.query_row(
+                db.query_row(
                     "SELECT id, enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT,
                             useCacheS, scanIntervalS, method, sourceMode, interval, isCron,
                             year, month, day, week, day_of_week, hour, minute, second,
@@ -723,12 +725,11 @@ pub async fn job_put(
                         min_file_size: row.get(25)?, max_file_size: row.get(26)?,
                         create_time: row.get(27)?,
                     }),
-                ).ok();
-                drop(db);
-                if let Some(job) = job {
-                    if job.enable && job.is_cron != 2 {
-                        crate::service::scheduler::get_scheduler().start_job(job).await;
-                    }
+                ).ok()
+            }; // MutexGuard dropped here
+            if let Some(job) = job {
+                if job.enable && job.is_cron != 2 {
+                    crate::service::scheduler::get_scheduler().start_job(job).await;
                 }
             }
             Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已启用"))
