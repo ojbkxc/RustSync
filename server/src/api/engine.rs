@@ -390,6 +390,57 @@ pub async fn alist_delete(
     }
 }
 
+
+/// 获取文件系统根目录列表，与 Python _filesystem_roots 一致
+fn filesystem_roots() -> Vec<serde_json::Value> {
+    let mut roots = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    let mut add = |name: &str, path: &str| {
+        let canonical = std::fs::canonicalize(path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| path.to_string());
+        if seen.contains(&canonical) {
+            return;
+        }
+        seen.insert(canonical.clone());
+        roots.push(serde_json::json!({
+            "name": name,
+            "path": canonical,
+        }));
+    };
+
+    #[cfg(target_os = "windows")]
+    {
+        for letter in 'A'..='Z' {
+            let path = format!("{}:\\", letter);
+            if std::path::Path::new(&path).is_dir() {
+                add(&format!("{}:", letter), &path);
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        add("/", "/");
+        if let Ok(home) = std::env::var("HOME") {
+            if let Ok(canonical_home) = std::fs::canonicalize(&home) {
+                let home_str = canonical_home.to_string_lossy().to_string();
+                let root_str = std::fs::canonicalize("/")
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|_| "/".to_string());
+                if home_str != root_str {
+                    add("home", &home_str);
+                }
+            }
+        }
+        if let Ok(cwd) = std::env::current_dir() {
+            let cwd_str = cwd.to_string_lossy().to_string();
+            add("cwd", &cwd_str);
+        }
+    }
+    roots
+}
+
 // ==================== 存储挂载 ====================
 
 /// GET /svr/storage - 获取挂载列表或浏览/发现
@@ -402,38 +453,61 @@ pub async fn storage_get(
 
     match action {
         Some("localBrowse") => {
-            let path = params.get("path").map(|s| s.as_str()).unwrap_or("/").to_string();
+            let path = params.get("path").map(|s| s.to_string());
             let result = tokio::task::spawn_blocking(move || {
-                let dir = std::fs::read_dir(&path);
-                match dir {
-                    Ok(entries) => {
-                        let mut files: Vec<serde_json::Value> = entries
-                            .filter_map(|e| e.ok())
-                            .map(|e| {
-                                let p = e.path();
-                                let name = e.file_name().to_string_lossy().to_string();
-                                let is_dir = p.is_dir();
-                                serde_json::json!({
-                                    "name": name,
-                                    "path": p.to_string_lossy(),
-                                    "isDir": is_dir,
-                                })
-                            })
-                            .collect();
-                        files.sort_by(|a, b| {
-                            let a_dir = a["isDir"].as_bool().unwrap_or(false);
-                            let b_dir = b["isDir"].as_bool().unwrap_or(false);
-                            b_dir.cmp(&a_dir).then_with(|| {
-                                a["name"].as_str().unwrap_or("").cmp(b["name"].as_str().unwrap_or(""))
-                            })
-                        });
-                        Ok(files)
+                let current = if let Some(ref p) = path {
+                    if p.is_empty() {
+                        std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|_| "/".to_string())
+                    } else {
+                        p.clone()
                     }
-                    Err(e) => Err(format!("读取目录失败: {}", e)),
+                } else {
+                    std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|_| "/".to_string())
+                };
+                let current_path = std::path::Path::new(&current);
+                let current = std::fs::canonicalize(current_path).map(|p| p.to_string_lossy().to_string()).unwrap_or(current);
+                if !std::path::Path::new(&current).is_dir() {
+                    return Err("local browse path must be an existing directory".to_string());
                 }
+                let parent_path = std::path::Path::new(&current).parent().map(|p| p.to_string_lossy().to_string());
+                let parent = match parent_path {
+                    Some(ref p) => {
+                        let resolved = std::fs::canonicalize(p).map(|cp| cp.to_string_lossy().to_string()).unwrap_or_else(|_| p.clone());
+                        if resolved == current { None } else { Some(resolved) }
+                    }
+                    None => None,
+                };
+                let roots = filesystem_roots();
+                let mut directories: Vec<serde_json::Value> = Vec::new();
+                if let Ok(entries) = std::fs::read_dir(&current) {
+                    for entry in entries.flatten() {
+                        let entry_path = entry.path();
+                        if entry_path.is_symlink() {
+                            continue;
+                        }
+                        if !entry_path.is_dir() {
+                            continue;
+                        }
+                        let entry_name = entry.file_name().to_string_lossy().to_string();
+                        let resolved = std::fs::canonicalize(&entry_path).map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|_| entry_path.to_string_lossy().to_string());
+                        directories.push(serde_json::json!({
+                            "name": entry_name,
+                            "path": resolved,
+                        }));
+                    }
+                }
+                directories.sort_by(|a, b| {
+                    a["name"].as_str().unwrap_or("").to_lowercase().cmp(&b["name"].as_str().unwrap_or("").to_lowercase())
+                });
+                Ok(serde_json::json!({
+                    "path": current,
+                    "parent": parent,
+                    "roots": roots,
+                    "directories": directories,
+                }))
             }).await;
             match result {
-                Ok(Ok(files)) => Json(ApiResponse::ok(serde_json::Value::Array(files))),
+                Ok(Ok(data)) => Json(ApiResponse::ok(data)),
                 Ok(Err(e)) => Json(ApiResponse::err(&e)),
                 Err(e) => Json(ApiResponse::err(&format!("任务失败: {}", e))),
             }
