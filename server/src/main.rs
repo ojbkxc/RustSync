@@ -101,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/system/logs", get(api::system::log_list))
         .route("/api/system/logs/read", get(api::system::log_read))
         .route("/api/system/logs/clear", post(api::system::log_clear))
+        .with_state(state.clone())
         .route_layer(axum::middleware::from_fn(service::auth::require_auth));
 
     let app = Router::new()

@@ -205,7 +205,7 @@ fn filesystem_roots() -> Vec<serde_json::Value> {
     };
     #[cfg(target_os = "windows")] {
         for letter in 'A'..='Z' {
-            let path = format!("{}:\\", letter);
+let path = format!("{}:\\", letter);
             if std::path::Path::new(&path).is_dir() { add(&format!("{}:", letter), &path); }
         }
     }
