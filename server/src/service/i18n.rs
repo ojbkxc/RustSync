@@ -98,6 +98,8 @@ fn load_builtin_languages() -> anyhow::Result<()> {
     zh.insert("disabled_job_cannot_run".to_string(), "禁用的作业不可手动执行".to_string());
     zh.insert("cannot_disable_manual_job".to_string(), "仅手动执行的作业不可禁用".to_string());
     zh.insert("no_job_for_run".to_string(), "没有可执行的作业".to_string());
+    zh.insert("job_running".to_string(), "作业正在执行中".to_string());
+    zh.insert("without_token".to_string(), "修改连接地址时必须提供令牌".to_string());
     zh.insert("notify_added".to_string(), "通知配置添加成功".to_string());
     zh.insert("notify_updated".to_string(), "通知配置更新成功".to_string());
     zh.insert("notify_deleted".to_string(), "通知配置删除成功".to_string());
@@ -132,9 +134,11 @@ fn load_builtin_languages() -> anyhow::Result<()> {
     en.insert("job_deleted".to_string(), "Job deleted".to_string());
     en.insert("job_not_found".to_string(), "Job not found".to_string());
     en.insert("disable_then_edit".to_string(), "Please disable the job first".to_string());
-    en.insert("disabled_job_cannot_run".to_string(), "Disabled job cannot be run manually".to_string());
-    en.insert("cannot_disable_manual_job".to_string(), "Manual-only job cannot be disabled".to_string());
+    en.insert("disabled_job_cannot_run".to_string(), "Disabled job cannot run manually".to_string());
+    en.insert("cannot_disable_manual_job".to_string(), "Manual-only jobs cannot be disabled".to_string());
     en.insert("no_job_for_run".to_string(), "No jobs available to run".to_string());
+    en.insert("job_running".to_string(), "Job is currently running".to_string());
+    en.insert("without_token".to_string(), "Token is required when changing the connection URL".to_string());
     en.insert("notify_added".to_string(), "Notification config added".to_string());
     en.insert("notify_updated".to_string(), "Notification config updated".to_string());
     en.insert("notify_deleted".to_string(), "Notification config deleted".to_string());
