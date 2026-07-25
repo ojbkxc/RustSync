@@ -1,3 +1,0 @@
-[submodule "rustsync"]
-	path = rustsync
-	url = https://github.com/ojbkxc/RustSync.git
