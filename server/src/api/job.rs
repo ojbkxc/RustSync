@@ -144,7 +144,7 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 }
 
 /// POST /api/jobs
-pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut body): Json<serde_json::Value>) -> impl IntoResponse {
+pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut body): Json<serde_json::Value>) -> axum::response::Response {
     if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<()>::bad_request(&e)).into_response(); }
     if body.get("id").is_some() { return update_job_inner(state, body).await; }
     let conn = state.db.get().unwrap();
@@ -160,7 +160,7 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut
 }
 
 /// PUT /api/jobs/:id
-pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(mut body): Json<serde_json::Value>) -> impl IntoResponse {
+pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(mut body): Json<serde_json::Value>) -> axum::response::Response {
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
     if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<()>::bad_request(&e)).into_response(); }
     update_job_inner(state, body).await
