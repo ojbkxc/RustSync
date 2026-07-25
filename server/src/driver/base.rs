@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 
 /// 文件条目信息
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FileEntry {
     pub path: String,
@@ -31,6 +32,7 @@ pub enum SyncOperation {
 }
 
 /// 存储驱动接口
+#[allow(dead_code)]
 #[async_trait]
 pub trait StorageDriver: Send + Sync {
     /// 获取驱动名称
@@ -73,6 +75,7 @@ pub trait StorageDriver: Send + Sync {
 }
 
 /// 驱动工厂 - 根据配置创建驱动实例
+#[allow(dead_code)]
 pub async fn create_driver(driver_type: &str, config: &serde_json::Value) -> anyhow::Result<Box<dyn StorageDriver>> {
     match driver_type {
         "local" => Ok(Box::new(crate::driver::local::LocalDriver::new(config)?)),

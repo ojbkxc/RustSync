@@ -2,11 +2,13 @@ use async_trait::async_trait;
 use std::path::PathBuf;
 use super::base::{FileEntry, StorageDriver};
 
+#[allow(dead_code)]
 pub struct LocalDriver {
     root: PathBuf,
 }
 
 impl LocalDriver {
+    #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
         let path = config.get("path")
             .and_then(|v| v.as_str())
@@ -18,6 +20,7 @@ impl LocalDriver {
         Ok(Self { root })
     }
 
+    #[allow(dead_code)]
     fn full_path(&self, path: &str) -> PathBuf {
         let clean = path.trim_start_matches('/');
         self.root.join(clean)
@@ -153,6 +156,7 @@ impl StorageDriver for LocalDriver {
 }
 
 impl LocalDriver {
+    #[allow(dead_code)]
     fn list_all_recursive(&self, path: &str, result: &mut Vec<FileEntry>) -> anyhow::Result<()> {
         let full = self.full_path(path);
         if !full.is_dir() {

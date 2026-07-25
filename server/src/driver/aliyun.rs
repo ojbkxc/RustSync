@@ -3,6 +3,7 @@ use super::base::{FileEntry, StorageDriver};
 
 // 阿里云盘驱动骨架 - 完整实现需要 OAuth 流程和 OpenFile API
 
+#[allow(dead_code)]
 pub struct AliyunDriver {
     client_id: String,
     client_secret: String,
@@ -11,6 +12,7 @@ pub struct AliyunDriver {
 }
 
 impl AliyunDriver {
+    #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
         let client_id = config.get("client_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let client_secret = config.get("client_secret").and_then(|v| v.as_str()).unwrap_or("").to_string();

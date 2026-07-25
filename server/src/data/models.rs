@@ -33,6 +33,7 @@ pub struct EngineRequest {
     pub engine_type: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageMount {
@@ -47,6 +48,7 @@ pub struct StorageMount {
     pub create_time: i64,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageMountRequest {
@@ -58,6 +60,7 @@ pub struct StorageMountRequest {
     pub enabled: bool,
 }
 
+#[allow(dead_code)]
 fn default_enabled() -> bool {
     true
 }
@@ -97,6 +100,7 @@ pub struct Job {
     pub create_time: i64,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JobRequest {
@@ -180,6 +184,7 @@ pub struct Notify {
     pub create_time: i64,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotifyRequest {
@@ -234,6 +239,7 @@ pub struct ResetPasswordRequest {
 
 // ==================== 分页 ====================
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageRequest {
@@ -243,13 +249,16 @@ pub struct PageRequest {
     pub page_size: i32,
 }
 
+#[allow(dead_code)]
 fn default_page_num() -> i32 {
     1
 }
+#[allow(dead_code)]
 fn default_page_size() -> i32 {
     10
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageResult<T: Serialize> {
