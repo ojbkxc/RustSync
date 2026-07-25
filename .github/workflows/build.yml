@@ -311,16 +311,19 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y musl-tools
-          # aarch64 musl 交叉编译需要 gcc-aarch64-linux-gnu
+          # aarch64 musl 交叉编译使用 cross (docker-based)
           if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
-            sudo apt-get install -y gcc-aarch64-linux-gnu
+            cargo install cross
           fi
 
       - name: 构建 Rust
         working-directory: server
-        env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: 打包
         run: |
