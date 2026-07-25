@@ -391,7 +391,7 @@ onMounted(() => {
             <el-input v-model="editData.params.username" placeholder="user@example.com" />
           </el-form-item>
           <el-form-item prop="params.password" :label="$t('notify.emailPassword')">
-            <el-input v-model="editData.params.password" placeholder="请输入SMTP密码或授权码" type="password" show-password />
+            <el-input v-model="editData.params.password" :placeholder="t(&apos;notify.emailPasswordPlaceholder&apos;)" type="password" show-password />
           </el-form-item>
           <el-form-item prop="params.from" :label="$t('notify.emailFrom')">
             <el-input v-model="editData.params.from" placeholder="noreply@example.com" />

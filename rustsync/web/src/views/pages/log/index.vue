@@ -25,7 +25,7 @@ async function loadLog() {
     logContent.value = res.data?.content || "";
     totalLines.value = res.data?.total_lines || 0;
   } catch {
-    ElMessage.error("读取日志失败");
+    ElMessage.error(t("log.readFail"));
   } finally {
     loading.value = false;
   }
@@ -33,7 +33,7 @@ async function loadLog() {
 
 async function clearLog() {
   try {
-    await ElMessageBox.confirm("确定清空所有日志吗？", t("common.warning"), {
+    await ElMessageBox.confirm(t("log.clearConfirm"), t("common.warning"), {
       confirmButtonText: t("common.confirm"),
       cancelButtonText: t("common.cancel"),
       type: "warning",
@@ -47,10 +47,10 @@ async function clearLog() {
       method: "post",
       headers: { isMask: false },
     });
-    ElMessage.success("日志已清空");
+    ElMessage.success(t("log.cleared"));
     loadLog();
   } catch {
-    ElMessage.error("清空日志失败");
+    ElMessage.error(t("log.clearFail"));
   }
 }
 
@@ -77,34 +77,34 @@ onMounted(() => {
 <template>
   <div class="log">
     <div class="top-box">
-      <div class="top-box-title">系统日志</div>
+      <div class="top-box-title">{{ t("log.title") }}</div>
     </div>
 
     <div class="toolbar">
       <div class="toolbar-left">
         <el-select v-model="lineCount" @change="loadLog" size="small" style="width: 120px">
-          <el-option :value="100" label="最近 100 行" />
-          <el-option :value="500" label="最近 500 行" />
-          <el-option :value="1000" label="最近 1000 行" />
-          <el-option :value="5000" label="最近 5000 行" />
+          <el-option :value="100" :label="t('log.recentLines', { n: 100 })" />
+          <el-option :value="500" :label="t('log.recentLines', { n: 500 })" />
+          <el-option :value="1000" :label="t('log.recentLines', { n: 1000 })" />
+          <el-option :value="5000" :label="t('log.recentLines', { n: 5000 })" />
         </el-select>
         <el-button size="small" @click="loadLog">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t("log.refresh") }}
         </el-button>
         <el-button size="small" :type="autoRefresh ? 'warning' : ''" @click="toggleAutoRefresh">
-          <el-icon><Timer /></el-icon> {{ autoRefresh ? "停止自动刷新" : "自动刷新" }}
+          <el-icon><Timer /></el-icon> {{ autoRefresh ? t("log.stopAutoRefresh") : t("log.autoRefresh") }}
         </el-button>
         <el-button size="small" type="danger" @click="clearLog">
-          <el-icon><Delete /></el-icon> 清空日志
+          <el-icon><Delete /></el-icon> {{ t("log.clear") }}
         </el-button>
       </div>
       <div class="toolbar-right">
-        <span class="log-info">共 {{ totalLines }} 行</span>
+        <span class="log-info">{{ t("log.totalLines", { n: totalLines }) }}</span>
       </div>
     </div>
 
     <div class="log-viewer" v-loading="loading">
-      <pre class="log-viewer-content">{{ logContent || "暂无日志" }}</pre>
+      <pre class="log-viewer-content">{{ logContent || t("log.empty") }}</pre>
     </div>
   </div>
 </template>

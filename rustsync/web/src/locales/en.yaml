@@ -379,6 +379,7 @@ notify:
   emailPassword: SMTP Password
   emailFrom: From
   emailTo: To
+  emailPasswordPlaceholder: Enter SMTP password or auth code
   methods:
     custom: Custom
     serverChan: ServerChan
@@ -417,6 +418,57 @@ taskItemStatus:
   failed: Failed
   waitRetry: Waiting retry
   beforeRetry: Before retry
+files:
+  title: File Manager
+  parentDir: Parent Directory
+  newFile: New File
+  newDir: New Directory
+  upload: Upload
+  refresh: Refresh
+  name: Name
+  size: Size
+  modified: Modified
+  edit: Edit
+  download: Download
+  rename: Rename
+  delete: Delete
+  empty: This directory is empty
+  newDirTitle: New Directory
+  newFileTitle: New File
+  dirNamePlaceholder: Enter directory name
+  fileNamePlaceholder: Enter file name
+  renameTitle: Rename
+  renamePlaceholder: Enter new name
+  editTitle: "Edit: {path}"
+  content: File Content
+  uploadTitle: Upload File
+  uploadTo: "Upload to: {path}"
+  dirCreated: Directory created
+  fileCreated: File created
+  readFail: Failed to read file
+  saved: File saved
+  saveFail: Failed to save
+  renamed: Renamed
+  renameFail: Failed to rename
+  deleteConfirm: "Are you sure you want to delete {path}? This cannot be undone."
+  deleted: Deleted
+  deleteFail: Failed to delete
+  uploaded: Uploaded
+  uploadFail: Failed to upload
+log:
+  title: System Logs
+  recentLines: "Last {n} lines"
+  refresh: Refresh
+  autoRefresh: Auto Refresh
+  stopAutoRefresh: Stop Auto Refresh
+  clear: Clear Logs
+  totalLines: "{n} lines total"
+  empty: No logs
+  readFail: Failed to read log
+  clearConfirm: Are you sure you want to clear all logs?
+  cleared: Logs cleared
+  clearFail: Failed to clear logs
+
 time:
   day: d
   hour: h
