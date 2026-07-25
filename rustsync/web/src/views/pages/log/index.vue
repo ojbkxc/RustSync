@@ -19,7 +19,6 @@ async function loadLog() {
     const res = await request({
       url: "/svr/log/read",
       params: { lines: lineCount.value },
-      headers: { isMask: false },
       method: "get",
     });
     logContent.value = res.data?.content || "";
@@ -45,7 +44,6 @@ async function clearLog() {
     await request({
       url: "/svr/log/clear",
       method: "post",
-      headers: { isMask: false },
     });
     ElMessage.success(t("log.cleared"));
     loadLog();

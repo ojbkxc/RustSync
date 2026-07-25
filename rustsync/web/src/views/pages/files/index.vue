@@ -57,7 +57,6 @@ async function loadFiles() {
     const res = await request({
       url: "/svr/files/list",
       params: { path: currentPath.value },
-      headers: { isMask: false },
       method: "get",
     });
     fileList.value = res.data || [];
@@ -117,7 +116,6 @@ async function submitCreate() {
     await request({
       url,
       method: "post",
-      headers: { isMask: false },
       data: { path: fullPath },
     });
     ElMessage.success(createType.value === "dir" ? t("files.dirCreated") : t("files.fileCreated"));
@@ -138,7 +136,6 @@ async function editFile(path) {
     const res = await request({
       url: "/svr/files/read",
       params: { path },
-      headers: { isMask: false },
       method: "get",
     });
     editContent.value = res.data || "";
@@ -155,7 +152,6 @@ async function saveFile() {
     await request({
       url: "/svr/files/write",
       method: "post",
-      headers: { isMask: false },
       data: { path: editPath.value, content: editContent.value },
     });
     ElMessage.success(t("files.saved"));
@@ -183,7 +179,6 @@ async function submitRename() {
     await request({
       url: "/svr/files/rename",
       method: "post",
-      headers: { isMask: false },
       data: { from: renameFrom.value, to: newPath },
     });
     ElMessage.success(t("files.renamed"));
@@ -211,7 +206,6 @@ async function deleteFile(path) {
     await request({
       url: "/svr/files/delete",
       method: "post",
-      headers: { isMask: false },
       data: { path },
     });
     ElMessage.success(t("files.deleted"));
@@ -244,7 +238,7 @@ async function submitUpload() {
     await request({
       url: "/svr/files/upload",
       method: "post",
-      headers: { isMask: false, "Content-Type": "multipart/form-data" },
+      headers: { "Content-Type": "multipart/form-data" },
       data: formData,
     });
     ElMessage.success(t("files.uploaded"));

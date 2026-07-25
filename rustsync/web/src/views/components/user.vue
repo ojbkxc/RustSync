@@ -97,12 +97,12 @@ const submit = () => {
 
 <template>
   <div class="header-user-box">
-    <el-dropdown v-if="$store.user" trigger="click">
+    <el-dropdown v-if="appStore.user" trigger="click">
       <div class="header-user">
         <el-icon>
           <Avatar />
         </el-icon>
-        <span class="username">{{ $store.user.userName }}</span>
+        <span class="username">{{ appStore.user.userName }}</span>
         <el-icon>
           <ArrowDown />
         </el-icon>
