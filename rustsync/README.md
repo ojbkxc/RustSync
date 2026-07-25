@@ -34,9 +34,9 @@
 
 ---
 
-Taotao is my daughter's nickname.
+RustSync is named after my daughter's nickname.
 
-I originally created this project to preserve photos of Taotao as she grows up, hence the name `RustSync`.
+I originally created this project to preserve family photos as my daughter grows up, hence the name `RustSync`.
 
 **If you find RustSync useful, please star the repository. Thank you!** [GitHub](https://github.com/ojbkxc/RustSync) [Docker Hub](https://hub.docker.com/r/ojbkxc/rustsync)
 
