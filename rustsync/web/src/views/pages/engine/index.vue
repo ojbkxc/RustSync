@@ -1,19 +1,19 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import {
-  alistDelete,
-  alistGet,
-  alistPost,
-  alistPut,
-  storageDelete,
-  storageGet,
-  storageLocalBrowse,
-  storagePost,
-  storageSmbDiscover,
-  storageSftpBrowse,
-  storageSftpTest,
-  storagePut,
-} from "@/api/job";
+  deleteEngine,
+  listEngines,
+  addEngine,
+  updateEngine,
+  deleteStorage,
+  listStorage,
+  localBrowse,
+  addStorage,
+  smbDiscover,
+  sftpBrowse,
+  sftpTest,
+  updateStorage,
+} from "@/api";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ArrowUp, Connection, Delete, Edit, FolderOpened, Hide, Monitor, Plus, RefreshRight, Search, View } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
@@ -322,7 +322,7 @@ const driverLabel = (driverType) => t(`engine.drivers.${driverType}`);
 
 const getAlistList = () => {
   getLoading.value = true;
-  return alistGet()
+  return listEngines()
     .then((res) => {
       alistList.value = res.data || [];
     })
@@ -374,7 +374,7 @@ const submit = () => {
       url: ensureHttpPrefix(editData.value.url),
     };
     editLoading.value = true;
-    const request = editFlag.value ? alistPut(postData) : alistPost(postData);
+    const request = editFlag.value ? updateEngine(postData) : addEngine(postData);
     request
       .then((res) => {
         ElMessage.success(res.msg || t("common.success"));
@@ -395,7 +395,7 @@ const delAlist = (alistId) => {
   })
     .then(() => {
       deleteLoading.value = alistId;
-      return alistDelete(alistId)
+      return deleteEngine(alistId)
         .then((res) => {
           ElMessage.success(res.msg || t("common.success"));
           return getAlistList();
@@ -410,7 +410,7 @@ const delAlist = (alistId) => {
 const getDirectoryList = () => {
   if (!currentEngine.value) return Promise.resolve();
   directoryLoading.value = true;
-  return storageGet(currentEngine.value.id)
+  return listStorage(currentEngine.value.id)
     .then((res) => {
       directoryList.value = res.data || [];
       currentEngine.value.directoryCount = directoryList.value.length;
@@ -573,7 +573,7 @@ const loadSftpRootNode = async (node, resolve) => {
   }
 
   try {
-    const res = await storageSftpBrowse(sftpBrowsePayload(path));
+    const res = await sftpBrowse(sftpBrowsePayload(path));
     if (
       requestEpoch !== sftpRootBrowseEpoch ||
       requestTestId !== sftpTestRequestId ||
@@ -640,7 +640,7 @@ const testSftpConnection = async () => {
   };
   sftpTestLoading.value = true;
   try {
-    const res = await storageSftpTest(payload);
+    const res = await sftpTest(payload);
     if (
       requestId !== sftpTestRequestId ||
       requestSignature !== sftpConnectionSignature.value ||
@@ -681,7 +681,7 @@ const testSftpConnection = async () => {
 const browseLocalPath = (path) => {
   const requestId = ++localBrowseRequestId;
   localBrowseLoading.value = true;
-  return storageLocalBrowse(path)
+  return localBrowse(path)
     .then((res) => {
       if (requestId !== localBrowseRequestId) return;
       const data = res.data || {};
@@ -713,7 +713,7 @@ const selectLocalDirectory = () => {
 const discoverSmbDevices = () => {
   const requestId = ++smbDiscoverRequestId;
   smbDiscoverLoading.value = true;
-  return storageSmbDiscover()
+  return smbDiscover()
     .then((res) => {
       if (requestId !== smbDiscoverRequestId) return;
       const seen = new Set();
@@ -760,7 +760,7 @@ const submitMount = () => {
   mountFormRef.value.validate((valid) => {
     if (!valid) return;
     mountLoading.value = true;
-    const request = mountEditFlag.value ? storagePut(mountPayload()) : storagePost(mountPayload());
+    const request = mountEditFlag.value ? updateStorage(mountPayload()) : addStorage(mountPayload());
     request
       .then((res) => {
         ElMessage.success(res.msg || t("common.success"));
@@ -781,7 +781,7 @@ const delMount = (mount) => {
   })
     .then(() => {
       mountDeleteLoading.value = mount.id;
-      return storageDelete(mount.id)
+      return deleteStorage(mount.id)
         .then((res) => {
           ElMessage.success(res.msg || t("common.success"));
           return getDirectoryList();
