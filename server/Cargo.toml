@@ -1,4 +1,4 @@
-[package]
+﻿[package]
 name = "rustsync-server"
 version = "0.4.0"
 edition = "2021"
@@ -19,6 +19,7 @@ serde_yaml = "0.9"
 rusqlite = { version = "0.31", features = ["bundled"] }
 
 # 工具库
+bytes = "1"
 chrono = { version = "0.4", features = ["serde", "clock"], default-features = false }
 anyhow = "1.0"
 tracing = "0.1"
