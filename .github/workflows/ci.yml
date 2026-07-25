@@ -18,7 +18,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep '^version=' module.prop | cut -d'=' -f2)
+          VERSION=$(cat rustsync/version.txt 2>/dev/null | head -1 | cut -d, -f1 | sed 's/^v//' || echo '0.4.0')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION"
 
@@ -92,7 +92,7 @@ jobs:
       - name: Package
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          zip -r RustSync-Magisk-${VERSION}-ci.zip . \
+          zip -r RustSync-${VERSION}-ci.zip . \
             -x ".git/*" \
             -x ".github/*" \
             -x ".gitignore" \
@@ -105,5 +105,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RustSync-Magisk-CI
-          path: RustSync-Magisk-*-ci.zip
+          name: RustSync-CI
+          path: RustSync-*-ci.zip

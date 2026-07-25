@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1
 # ============================================================
 # RustSync 多架构 Docker 镜像 (amd64 + arm64)
 # 构建:
@@ -23,7 +23,7 @@ RUN mkdir src && echo 'fn main() {}' > src/main.rs
 RUN cargo build --release
 RUN rm -rf src
 COPY server/src ./src
-COPY server/locales ./locales
+COPY rustsync/locales ./locales
 COPY --from=frontend-builder /app/web/dist ./static
 RUN cargo build --release
 

@@ -15,7 +15,7 @@ SERVER_DIR="$PROJECT_DIR/server"
 WEB_DIR="$PROJECT_DIR/rustsync/web"
 DIST_DIR="$PROJECT_DIR/dist"
 
-VERSION=$(cat "$PROJECT_DIR/rustsync/version.txt" 2>/dev/null || echo "1.0.0")
+VERSION=$(cat "$PROJECT_DIR/rustsync/version.txt" 2>/dev/null | head -1 | cut -d, -f1 | sed "s/^v//" || echo "1.0.0")
 APP_NAME="RustSync"
 
 # 颜色

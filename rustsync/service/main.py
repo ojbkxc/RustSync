@@ -42,8 +42,6 @@ def _detect_abi():
         machine = platform.machine()
         if machine in ('aarch64', 'arm64'):
             return 'arm64-v8a'
-        if machine in ('armv7l', 'armv8l'):
-            return 'armeabi-v7a'
     except Exception:
         pass
     return 'arm64-v8a'

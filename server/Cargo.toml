@@ -1,6 +1,6 @@
 [package]
 name = "rustsync-server"
-version = "1.0.0"
+version = "0.4.0"
 edition = "2021"
 description = "RustSync Rust 重写版 - 自动化存储同步服务"
 

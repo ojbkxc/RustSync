@@ -458,6 +458,16 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: 下载前端
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: rustsync/web/dist
+
       - name: 替换平台名称
         run: |
           platform="${{ matrix.platform }}"
@@ -475,17 +485,8 @@ jobs:
           username: ${{ env.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: 下载前端
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: rustsync/web/dist
-
       - name: 构建 Docker 镜像
+        id: build-image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -495,6 +496,7 @@ jobs:
             type=image,name=${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }},push-by-digest=true,name-canonical=true,push=true
 
       - name: 导出 digest
+        if: steps.build-image.outputs.digest != ''
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build-image.outputs.digest }}"
@@ -600,7 +602,7 @@ jobs:
             - 密码: `admin`
           files: |
             dist/${APP_NAME}-app-*.apk
-            dist/${APP_NAME}-*.zip
+            dist/${APP_NAME}-${VERSION}.zip
             dist/${APP_NAME}-*-linux-*.tar.gz
             dist/${APP_NAME}-*-darwin-*.tar.gz
             dist/${APP_NAME}-*-windows-*.zip

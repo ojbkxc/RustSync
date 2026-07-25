@@ -16,7 +16,7 @@ WEB_DIR="$PROJECT_DIR/rustsync/web"
 DIST_DIR="$PROJECT_DIR/dist"
 MAGISK_TMP="$PROJECT_DIR/dist/magisk-tmp"
 
-VERSION=$(cat "$PROJECT_DIR/rustsync/version.txt" 2>/dev/null || echo "1.0.0")
+VERSION=$(cat "$PROJECT_DIR/rustsync/version.txt" 2>/dev/null | head -1 | cut -d, -f1 | sed "s/^v//" || echo "1.0.0")
 MAGISK_ID="rustsync_magisk"
 MAGISK_NAME="RustSync"
 
