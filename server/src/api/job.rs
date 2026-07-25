@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    response::IntoResponse,
     Json,
 };
 use crate::data::models::Job;
@@ -143,7 +144,7 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 }
 
 /// POST /api/jobs
-pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
+pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut body): Json<serde_json::Value>) -> impl IntoResponse {
     if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
     if body.get("id").is_some() { return update_job_inner(state, body).await; }
     let conn = state.db.get().unwrap();
@@ -159,13 +160,13 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(mut
 }
 
 /// PUT /api/jobs/:id
-pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(mut body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
+pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(mut body): Json<serde_json::Value>) -> impl IntoResponse {
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
     if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
     update_job_inner(state, body).await
 }
 
-async fn update_job_inner(state: crate::state::SharedState, body: serde_json::Value) -> Json<ApiResponse<serde_json::Value>> {
+async fn update_job_inner(state: crate::state::SharedState, body: serde_json::Value) -> impl IntoResponse {
     let job_id = body.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
     let conn = state.db.get().unwrap();
     let (old_enable, old_is_cron, old_alist_id, old_src_path, old_dst_path, old_method, old_exclude, old_min_fs, old_max_fs): (i32, i32, Option<i64>, String, String, i32, Option<String>, Option<i64>, Option<i64>) = conn.query_row(
