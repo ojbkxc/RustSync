@@ -30,6 +30,9 @@ rand = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 mime_guess = "2.0"
 
+# 邮件通知
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
+
 # 加密
 md-5 = "0.10"
 

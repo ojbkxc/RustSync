@@ -258,7 +258,7 @@ jobs:
           VERSION_CODE=$(echo "$VERSION" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
 
-          (cd "$MAGISK_TMP" && zip -qr "$OLDPWD/dist/${APP_NAME}-${VERSION}.zip" .)
+          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-${VERSION}.zip" .)
           rm -rf "$MAGISK_TMP"
           echo "Magisk: dist/${APP_NAME}-${VERSION}.zip"
 

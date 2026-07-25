@@ -73,7 +73,9 @@ header:
 menu:
   home: Jobs
   engine: Engines
+  files: Files
   notify: Notifications
+  log: Logs
   setting: Settings
 home:
   jobManagement: Job Management
@@ -363,6 +365,7 @@ notify:
   dingTalkTip: "{configGuide}: use the custom keyword security setting with RustSync as the keyword."
   weComTip: "{configGuide}: get these values from the WeCom admin console."
   larkTip: "{configGuide}: use the custom keyword security setting with RustSync as the keyword."
+  emailTip: SMTP email notification. Supports major email providers. Use SMTP auth code instead of login password.
   corpid: Corp ID
   agentid: Agent ID
   corpsecret: Secret
@@ -370,12 +373,19 @@ notify:
   touserPlaceholder: User IDs separated by |, @all for everyone
   testSent: Test message sent. Please verify delivery.
   deleteConfirm: This notification config will be permanently deleted. Continue?
+  smtpServer: SMTP Server
+  smtpPort: SMTP Port
+  emailUsername: Email Username
+  emailPassword: SMTP Password
+  emailFrom: From
+  emailTo: To
   methods:
     custom: Custom
     serverChan: ServerChan
     dingTalk: DingTalk Bot
     weCom: WeCom App
     lark: Lark Bot
+    email: Email
 refresh:
   auto: Auto refresh
 pathSelect:

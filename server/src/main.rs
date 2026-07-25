@@ -86,6 +86,23 @@ async fn main() -> anyhow::Result<()> {
             .post(api::notify::add_notify)
             .put(api::notify::update_notify)
             .delete(api::notify::delete_notify))
+        // 文件管理器
+        .route("/svr/files/list", get(api::files::list_files))
+        .route("/svr/files/read", get(api::files::read_file))
+        .route("/svr/files/write", post(api::files::write_file))
+        .route("/svr/files/mkdir", post(api::files::create_dir))
+        .route("/svr/files/touch", post(api::files::create_file))
+        .route("/svr/files/delete", post(api::files::delete_file))
+        .route("/svr/files/rename", post(api::files::rename_file))
+        .route("/svr/files/copy", post(api::files::copy_file))
+        .route("/svr/files/info", get(api::files::file_info))
+        .route("/svr/files/upload", post(api::files::upload_file))
+        .route("/svr/files/download", get(api::files::download_file))
+        .route("/svr/files/dirsize", get(api::files::dir_size))
+        // 日志查看
+        .route("/svr/log/list", get(api::system::log_list))
+        .route("/svr/log/read", get(api::system::log_read))
+        .route("/svr/log/clear", post(api::system::log_clear))
         // 认证中间件 - 匹配 Python baseController.handle_request 的鉴权逻辑
         .route_layer(axum::middleware::from_fn(service::auth::require_auth));
 

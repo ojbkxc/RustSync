@@ -7,7 +7,7 @@ const changeCollapse = function changeCollapse() {
 }
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-import { BellFilled, DataAnalysis, FolderOpened, Setting } from '@element-plus/icons-vue';
+import { BellFilled, DataAnalysis, FolderOpened, Setting, Files, Tickets } from '@element-plus/icons-vue';
 const menuList = ref([{
     index: '/home',
     icon: markRaw(DataAnalysis),
@@ -17,9 +17,17 @@ const menuList = ref([{
     icon: markRaw(FolderOpened),
     title: computed(() => t('menu.engine'))
 }, {
+    index: '/files',
+    icon: markRaw(Files),
+    title: computed(() => t('menu.files'))
+}, {
     index: '/notify',
     icon: markRaw(BellFilled),
     title: computed(() => t('menu.notify'))
+}, {
+    index: '/log',
+    icon: markRaw(Tickets),
+    title: computed(() => t('menu.log'))
 }, {
     index: '/setting',
     icon: markRaw(Setting),
@@ -106,7 +114,7 @@ const leftIndex = computed(() => route.meta?.leftIndex)
             .el-menu {
                 height: 100%;
                 display: grid;
-                grid-template-columns: repeat(4, minmax(0, 1fr));
+                grid-template-columns: repeat(6, minmax(0, 1fr));
             }
 
             :deep(.el-menu-item) {

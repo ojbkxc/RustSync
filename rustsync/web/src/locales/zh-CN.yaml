@@ -73,7 +73,9 @@ header:
 menu:
   home: 作业管理
   engine: 引擎管理
+  files: 文件管理
   notify: 通知配置
+  log: 系统日志
   setting: 系统设置
 home:
   jobManagement: 作业管理
@@ -313,7 +315,7 @@ engine:
   clientIdRule: 请输入 Client ID
   clientSecretRule: 请输入 Client Secret
   refreshTokenRule: 请输入 Refresh Token
-  mountDeleteConfirm: "将删除目录“{name}”，使用该目录的作业将无法运行，仍要删除吗？"
+  mountDeleteConfirm: "将删除目录"{name}"，使用该目录的作业将无法运行，仍要删除吗？"
   drivers:
     local: 本地目录
     smb: SMB
@@ -363,6 +365,7 @@ notify:
   dingTalkTip: "{configGuide} 安全设置请采用自定义关键字，关键字内容为 RustSync。"
   weComTip: "{configGuide} 请在企业微信管理后台获取相关参数"
   larkTip: "{configGuide} 安全设置请采用自定义关键字，关键字内容为 RustSync。"
+  emailTip: SMTP 邮件通知，支持主流邮箱服务商。请使用 SMTP 授权码而非登录密码。
   corpid: 企业ID
   agentid: 应用ID
   corpsecret: 应用Secret
@@ -370,12 +373,19 @@ notify:
   touserPlaceholder: 请输入接收用户ID，多个用 | 分隔，@all 表示全部
   testSent: 测试消息已发送，请检查是否正确收到通知
   deleteConfirm: 操作不可逆，将永久删除该通知配置，仍要删除吗？
+  smtpServer: SMTP 服务器
+  smtpPort: SMTP 端口
+  emailUsername: 邮箱账号
+  emailPassword: SMTP 密码/授权码
+  emailFrom: 发件人
+  emailTo: 收件人
   methods:
     custom: 自定义
     serverChan: server酱
     dingTalk: 钉钉群机器人
     weCom: 企业微信应用消息
     lark: Lark群机器人
+    email: 邮件通知
 refresh:
   auto: 自动刷新
 pathSelect:
@@ -384,7 +394,7 @@ pathSelect:
 setting:
   title: 系统设置
   username: 用户名
-  version: RustSync 版本：__version_placeholder__
+  version: "RustSync 版本：__version_placeholder__"
   github: 项目地址（GitHub）
   issues: 问题反馈（GitHub Issues）
 taskStatus:

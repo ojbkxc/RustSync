@@ -54,6 +54,19 @@ const router = createRouter({
       ],
     },
     {
+      path: "/files",
+      component: layout,
+      children: [
+        {
+          path: "",
+          component: () => import("@/views/pages/files/index.vue"),
+          meta: {
+            leftIndex: "/files",
+          },
+        },
+      ],
+    },
+    {
       path: "/notify",
       component: layout,
       children: [
@@ -62,6 +75,19 @@ const router = createRouter({
           component: () => import("@/views/pages/notify/index.vue"),
           meta: {
             leftIndex: "/notify",
+          },
+        },
+      ],
+    },
+    {
+      path: "/log",
+      component: layout,
+      children: [
+        {
+          path: "",
+          component: () => import("@/views/pages/log/index.vue"),
+          meta: {
+            leftIndex: "/log",
           },
         },
       ],

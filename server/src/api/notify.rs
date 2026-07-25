@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::State,
     Json,
 };
@@ -298,7 +298,71 @@ pub async fn send_notification(method: i32, params: &str, title: &str, body: &st
                 }
             }
         }
+        5 => {
+            // 邮件通知
+            let smtp_server = params.get("smtpServer").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("邮件缺少 SMTP 服务器"))?;
+            let smtp_port = params.get("smtpPort").and_then(|v| v.as_u64()).unwrap_or(587) as u16;
+            let username = params.get("username").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("邮件缺少用户名"))?;
+            let password = params.get("password").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("邮件缺少密码"))?;
+            let from = params.get("from").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("邮件缺少发件人"))?;
+            let to = params.get("to").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("邮件缺少收件人"))?;
+
+            send_email_notification(smtp_server, smtp_port, username, password, from, to, title, body).await?;
+        }
         _ => return Err(anyhow::anyhow!("不支持的通知方式: {}", method)),
     }
+    Ok(())
+}
+
+async fn send_email_notification(
+    smtp_server: &str,
+    smtp_port: u16,
+    username: &str,
+    password: &str,
+    from: &str,
+    to: &str,
+    subject: &str,
+    body: &str,
+) -> anyhow::Result<()> {
+    use lettre::message::{Mailbox, Message, MultiPart};
+    use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
+
+    let from_addr: Mailbox = from.parse()
+        .map_err(|e| anyhow::anyhow!("发件人地址无效: {}", e))?;
+    
+    let to_addrs: Vec<Mailbox> = to.split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.parse::<Mailbox>())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| anyhow::anyhow!("收件人地址无效: {}", e))?;
+
+    let mut builder = Message::builder().from(from_addr);
+    for addr in &to_addrs {
+        builder = builder.to(addr.clone());
+    }
+    let email = builder
+        .subject(subject)
+        .body(body.to_string())
+        .map_err(|e| anyhow::anyhow!("构建邮件失败: {}", e))?;
+
+    let creds = lettre::transport::smtp::authentication::Credentials::new(
+        username.to_string(),
+        password.to_string(),
+    );
+
+    let mailer = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_server)
+        .port(smtp_port)
+        .credentials(creds)
+        .build();
+
+    mailer.send(email).await
+        .map_err(|e| anyhow::anyhow!("邮件发送失败: {}", e))?;
+
     Ok(())
 }

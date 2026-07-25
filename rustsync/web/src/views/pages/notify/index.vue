@@ -49,6 +49,15 @@ const editRule = computed(() => [
       url: [{ type: "string", required: true, message: t("notify.webhook"), trigger: "blur" }],
     },
   },
+  {
+    params: {
+      smtpServer: [{ type: "string", required: true, message: t("notify.smtpServer"), trigger: "blur" }],
+      username: [{ type: "string", required: true, message: t("notify.emailUsername"), trigger: "blur" }],
+      password: [{ type: "string", required: true, message: t("notify.emailPassword"), trigger: "blur" }],
+      from: [{ type: "string", required: true, message: t("notify.emailFrom"), trigger: "blur" }],
+      to: [{ type: "string", required: true, message: t("notify.emailTo"), trigger: "blur" }],
+    },
+  },
 ]);
 
 const getData = () => {
@@ -118,6 +127,16 @@ const methodChange = (val) => {
   } else if (val === 4) {
     editData.value.params = {
       url: "",
+      notSendNull: false,
+    };
+  } else if (val === 5) {
+    editData.value.params = {
+      smtpServer: "",
+      smtpPort: 587,
+      username: "",
+      password: "",
+      from: "",
+      to: "",
       notSendNull: false,
     };
   }
@@ -293,6 +312,9 @@ onMounted(() => {
               </a>
             </template>
           </i18n-t>
+          <div v-else-if="editData.method == 5" class="tip-box">
+            {{ $t("notify.emailTip") }}
+          </div>
         </el-form-item>
         <template v-if="editData.method == 0">
           <el-form-item prop="params.url" :label="$t('notify.requestUrl')">
@@ -351,6 +373,26 @@ onMounted(() => {
         <template v-else-if="editData.method == 4">
           <el-form-item prop="params.url" :label="$t('notify.webhook')">
             <el-input v-model="editData.params.url" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxxxx" />
+          </el-form-item>
+        </template>
+        <template v-else-if="editData.method == 5">
+          <el-form-item prop="params.smtpServer" :label="$t('notify.smtpServer')">
+            <el-input v-model="editData.params.smtpServer" placeholder="smtp.example.com" />
+          </el-form-item>
+          <el-form-item prop="params.smtpPort" :label="$t('notify.smtpPort')">
+            <el-input-number v-model="editData.params.smtpPort" :min="1" :max="65535" style="width: 100%" />
+          </el-form-item>
+          <el-form-item prop="params.username" :label="$t('notify.emailUsername')">
+            <el-input v-model="editData.params.username" placeholder="user@example.com" />
+          </el-form-item>
+          <el-form-item prop="params.password" :label="$t('notify.emailPassword')">
+            <el-input v-model="editData.params.password" placeholder="请输入SMTP密码或授权码" type="password" show-password />
+          </el-form-item>
+          <el-form-item prop="params.from" :label="$t('notify.emailFrom')">
+            <el-input v-model="editData.params.from" placeholder="noreply@example.com" />
+          </el-form-item>
+          <el-form-item prop="params.to" :label="$t('notify.emailTo')">
+            <el-input v-model="editData.params.to" placeholder="admin@example.com" />
           </el-form-item>
         </template>
         <el-form-item prop="params.notSendNull" :label="$t('notify.notSendNull')">
@@ -453,7 +495,6 @@ onMounted(() => {
     color: var(--active-color);
     font-weight: 700;
   }
-
 }
 
 .notify-method-form-item {

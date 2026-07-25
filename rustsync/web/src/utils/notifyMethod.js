@@ -6,6 +6,7 @@ export const notifyMethodKeys = [
   "notify.methods.dingTalk",
   "notify.methods.weCom",
   "notify.methods.lark",
+  "notify.methods.email",
 ];
 
 export default function notifyMethod(value) {
