@@ -724,6 +724,7 @@ pub async fn job_put(
                         create_time: row.get(27)?,
                     }),
                 ).ok();
+                drop(db);
                 if let Some(job) = job {
                     if job.enable && job.is_cron != 2 {
                         crate::service::scheduler::get_scheduler().start_job(job).await;
