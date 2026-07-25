@@ -192,7 +192,7 @@ fn get_doing_task_items(db: &std::sync::MutexGuard<rusqlite::Connection>, task_i
             "errMsg": row.get::<_, Option<String>>(7)?,
             "createTime": row.get::<_, i64>(8)?,
         }))
-    }).unwrap_or_else(|_| rusqlite::Rows::new()).filter_map(|r| r.ok()).collect();
+    }).map(|rows| rows.filter_map(|r| r.ok()).collect()).unwrap_or_else(|_| vec![]);
     items
 }
 
@@ -749,28 +749,16 @@ pub async fn job_put(
                     return Json(ApiResponse::err(&i18n::t("job_running")));
                 }
                 drop(db);
-                let db = state.db.lock().unwrap();
-                let ts = now_ts();
-                match db.execute(
-                    "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
-                    rusqlite::params![job_id, ts],
-                ) {
-                    Ok(_) => {
-                        let task_id = db.last_insert_rowid();
-                        drop(db);
-                        // 在后台异步执行同步
-                        tokio::spawn(async move {
-                            if let Err(e) = crate::service::sync_engine::run_sync_for_job(job_id).await {
-                                tracing::error!("手动执行作业 {} 失败: {}", job_id, e);
-                            }
-                        });
-                        Json(ApiResponse::ok_msg(
-                            serde_json::json!({"taskId": task_id}),
-                            "作业已开始执行",
-                        ))
+                // 在后台异步执行同步（run_sync_for_job 内部会创建任务记录）
+                tokio::spawn(async move {
+                    if let Err(e) = crate::service::sync_engine::run_sync_for_job(job_id).await {
+                        tracing::error!("手动执行作业 {} 失败: {}", job_id, e);
                     }
-                    Err(e) => Json(ApiResponse::err(&format!("执行失败: {}", e))),
-                }
+                });
+                Json(ApiResponse::ok_msg(
+                    serde_json::json!({}),
+                    "作业已开始执行",
+                ))
             } else {
                 // 执行所有启用的作业
                 let db = state.db.lock().unwrap();
@@ -787,39 +775,33 @@ pub async fn job_put(
                 }
                 drop(stmt);
                 drop(db);
+                // 筛选可执行的作业（检查是否已有正在执行的任务）
                 let db = state.db.lock().unwrap();
-                let ts = now_ts();
-                let mut tasks = vec![];
+                let mut eligible_jobs = vec![];
                 for job_id in &job_ids {
-                    // 检查是否已有正在执行的任务
                     let running: i64 = db.query_row(
                         "SELECT count(*) FROM job_task WHERE jobId=? AND status IN (0, 1)", [job_id], |row| row.get(0)
                     ).unwrap_or(0);
-                    if running > 0 {
-                        continue;
-                    }
-                    if let Ok(_) = db.execute(
-                        "INSERT INTO job_task (jobId, status, runTime) VALUES (?, 1, ?)",
-                        rusqlite::params![job_id, ts],
-                    ) {
-                        tasks.push((*job_id, db.last_insert_rowid()));
+                    if running == 0 {
+                        eligible_jobs.push(*job_id);
                     }
                 }
                 drop(db);
-                if tasks.is_empty() {
+                if eligible_jobs.is_empty() {
                     return Json(ApiResponse::err(&i18n::t("no_job_for_run")));
                 }
-                // 在后台异步执行所有作业的同步
+                // 在后台异步执行所有作业的同步（run_sync_for_job 内部会创建任务记录）
+                let task_count = eligible_jobs.len();
                 tokio::spawn(async move {
-                    for (job_id, _task_id) in tasks {
+                    for job_id in eligible_jobs {
                         if let Err(e) = crate::service::sync_engine::run_sync_for_job(job_id).await {
                             tracing::error!("批量执行作业 {} 失败: {}", job_id, e);
                         }
                     }
                 });
                 Json(ApiResponse::ok_msg(
-                    serde_json::json!({"count": tasks.len()}),
-                    &format!("已启动 {} 个作业", tasks.len()),
+                    serde_json::json!({"count": task_count}),
+                    &format!("已启动 {} 个作业", task_count),
                 ))
             }
         }
