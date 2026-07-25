@@ -266,7 +266,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-magisk
-          path: dist/${APP_NAME}-*.zip
+          path: dist/${{ env.APP_NAME }}-*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -318,6 +318,8 @@ jobs:
 
       - name: 构建 Rust
         working-directory: server
+        env:
+          CC_aarch64_unknown_linux_musl: aarch64-linux-gnu-gcc
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: 打包
@@ -425,6 +427,8 @@ jobs:
 
       - name: 构建 Rust
         working-directory: server
+        env:
+          CC_aarch64_unknown_linux_musl: aarch64-linux-gnu-gcc
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: 打包
@@ -601,10 +605,10 @@ jobs:
             - 端口: `8023`
             - 密码: `admin`
           files: |
-            dist/${APP_NAME}-app-*.apk
-            dist/${APP_NAME}-${VERSION}.zip
-            dist/${APP_NAME}-*-linux-*.tar.gz
-            dist/${APP_NAME}-*-darwin-*.tar.gz
-            dist/${APP_NAME}-*-windows-*.zip
+            dist/${{ env.APP_NAME }}-app-*.apk
+            dist/${{ env.APP_NAME }}-${{ env.VERSION }}.zip
+            dist/${{ env.APP_NAME }}-*-linux-*.tar.gz
+            dist/${{ env.APP_NAME }}-*-darwin-*.tar.gz
+            dist/${{ env.APP_NAME }}-*-windows-*.zip
           draft: false
           prerelease: false
