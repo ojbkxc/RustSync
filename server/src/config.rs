@@ -4,6 +4,7 @@ use std::sync::RwLock;
 /// 数据目录
 pub const DEFAULT_DATA_DIR: &str = "data";
 pub const CONF_DIR: &str = "/data/adb/rustsync";
+#[allow(dead_code)]
 pub const MOD_DIR: &str = "/data/adb/modules/rustsync_magisk";
 
 /// 默认配置

@@ -3,6 +3,7 @@ use super::base::{FileEntry, StorageDriver};
 
 // FTP 驱动骨架 - 完整实现需要 suppaftp 异步客户端
 
+#[allow(dead_code)]
 pub struct FtpDriver {
     host: String,
     port: u16,
@@ -12,6 +13,7 @@ pub struct FtpDriver {
 }
 
 impl FtpDriver {
+    #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
         let host = config.get("host").and_then(|v| v.as_str()).unwrap_or("localhost").to_string();
         let port = config.get("port").and_then(|v| v.as_u64()).unwrap_or(21) as u16;

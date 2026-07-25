@@ -4,6 +4,7 @@ use super::base::{FileEntry, StorageDriver};
 // SFTP 驱动 - 完整实现需要 russh 或 ssh2 crate
 // 这里提供骨架，实际使用时需要引入 SSH 库
 
+#[allow(dead_code)]
 pub struct SftpDriver {
     host: String,
     port: u16,
@@ -13,6 +14,7 @@ pub struct SftpDriver {
 }
 
 impl SftpDriver {
+    #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
         let host = config.get("host").and_then(|v| v.as_str()).unwrap_or("localhost").to_string();
         let port = config.get("port").and_then(|v| v.as_u64()).unwrap_or(22) as u16;

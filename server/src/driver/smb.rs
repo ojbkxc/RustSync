@@ -3,6 +3,7 @@ use super::base::{FileEntry, StorageDriver};
 
 // SMB 驱动骨架 - 完整实现需要 pavao 或 smb crate
 
+#[allow(dead_code)]
 pub struct SmbDriver {
     host: String,
     port: u16,
@@ -13,6 +14,7 @@ pub struct SmbDriver {
 }
 
 impl SmbDriver {
+    #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
         let host = config.get("host").and_then(|v| v.as_str()).unwrap_or("localhost").to_string();
         let port = config.get("port").and_then(|v| v.as_u64()).unwrap_or(445) as u16;
