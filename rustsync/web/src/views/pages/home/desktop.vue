@@ -1,4 +1,4 @@
-ï»¿<script setup>
+<script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { listEngines, deleteJob, listJobs, createJob, updateJob } from "@/api";
@@ -359,7 +359,7 @@ const submit = () => {
 
 const submitDisable = () => {
   editLoading.value = true;
-  const request = disableIsDel.value ? deleteJob(disableCu.value.id) : jobPut(disableCu.value);
+  const request = disableIsDel.value ? deleteJob(disableCu.value.id) : updateJob(disableCu.value);
   request
     .then((res) => {
       ElMessage({
@@ -440,7 +440,7 @@ onMounted(() => {
             <div class="form-box-item">
               <div class="form-box-item-label">{{ $t("home.targetScan") }}</div>
               <div class="form-box-item-value">
-                {{ props.row.useCacheT == 0 ? $t("home.noCache") : $t("home.useCache") }}ï¼Œ{{
+                {{ props.row.useCacheT == 0 ? $t("home.noCache") : $t("home.useCache") }}£¬{{
                   $t("home.operateInterval", { seconds: props.row.scanIntervalT })
                 }}
               </div>
@@ -448,7 +448,7 @@ onMounted(() => {
             <div class="form-box-item">
               <div class="form-box-item-label">{{ $t("home.sourceScan") }}</div>
               <div class="form-box-item-value">
-                {{ props.row.useCacheS == 0 ? $t("home.noCache") : $t("home.useCache") }}ï¼Œ{{
+                {{ props.row.useCacheS == 0 ? $t("home.noCache") : $t("home.useCache") }}£¬{{
                   $t("home.operateInterval", { seconds: props.row.scanIntervalS })
                 }}
               </div>

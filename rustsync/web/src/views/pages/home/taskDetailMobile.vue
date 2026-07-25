@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Back } from "@element-plus/icons-vue";
-import { jobGetTaskItem } from "@/api/job";
+import { getTaskItems } from "@/api";
 import taskItemStatus, { taskItemStatusKeys } from "@/utils/taskItemStatus";
 import { parseSize, parseTime } from "@/utils/utils";
 import menuRefresh from "./components/menuRefresh.vue";
@@ -32,7 +32,7 @@ const getTaskItemList = () => {
   const query = { ...params.value };
   if (query.status === null || query.status === "") delete query.status;
   if (query.type === null || query.type === "") delete query.type;
-  jobGetTaskItem(query)
+  getTaskItems(query)
     .then((res) => {
       res.data.dataList.forEach((item) => {
         item.progress = Math.min(parseInt(item.progress || 0), 100);

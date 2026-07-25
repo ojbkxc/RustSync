@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Back, Delete, View } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { jobDeleteTask, jobGetTask } from "@/api/job";
+import { deleteTask, getJobTasks } from "@/api";
 import taskStatus from "@/utils/taskStatus";
 import { parseTime } from "@/utils/utils";
 import menuRefresh from "./components/menuRefresh.vue";
@@ -31,7 +31,7 @@ const currentHeight = ref(0);
 const getTaskList = () => {
   if (params.value.id == null) return;
   loading.value = true;
-  jobGetTask(params.value)
+  getJobTasks(params.value)
     .then((res) => {
       taskData.value = res.data;
     })
@@ -56,7 +56,7 @@ const delTask = (taskId) => {
     type: "warning",
   }).then(() => {
     btnLoading.value = true;
-    jobDeleteTask(taskId)
+    deleteTask(taskId)
       .then((res) => {
         ElMessage({
           message: res.msg,

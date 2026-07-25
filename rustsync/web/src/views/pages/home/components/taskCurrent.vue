@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { jobGetTaskCurrent, jobPut } from "@/api/job";
+import { getJobCurrent, updateJob } from "@/api";
 import taskCurrentEcharts from "./taskCurrentEcharts.vue";
 import taskDetailTable from "./taskDetailTable.vue";
 import { parseSize, parseTime } from "@/utils/utils";
@@ -101,7 +101,7 @@ const getTaskList = () => {
     return;
   }
   loadingTask.value = true;
-  jobGetTaskCurrent({
+  getJobCurrent({
     id: props.jobId,
     status: cuTaskSelect.value,
   })
@@ -148,7 +148,7 @@ const getCurrent = () => {
     return;
   }
   loading.value = true;
-  jobGetTaskCurrent({
+  getJobCurrent({
     id: props.jobId,
   })
     .then((res) => {
@@ -199,7 +199,7 @@ const abortJob = () => {
     cancelButtonText: t("common.cancel"),
     type: "warning",
   }).then(() => {
-    jobPut({
+    updateJob({
       pause: true,
       id: Number(props.jobId),
       abort: true,

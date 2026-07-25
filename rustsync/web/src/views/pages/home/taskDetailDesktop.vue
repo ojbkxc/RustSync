@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { jobGetTaskItem } from "@/api/job";
+import { getTaskItems } from "@/api";
 import { taskItemStatusKeys } from "@/utils/taskItemStatus";
 import menuRefresh from "./components/menuRefresh.vue";
 import taskDetailTable from "./components/taskDetailTable.vue";
@@ -31,7 +31,7 @@ const getTaskItemList = () => {
   const query = { ...params.value };
   if (query.status === null || query.status === "") delete query.status;
   if (query.type === null || query.type === "") delete query.type;
-  jobGetTaskItem(query)
+  getTaskItems(query)
     .then((res) => {
       res.data.dataList.forEach((item) => {
         item.progress = parseInt(item.progress || 0);

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { alistGetPath } from "@/api/job";
+import { browseEngine } from "@/api";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps({
@@ -27,7 +27,7 @@ const show = () => {
 const getPath = async (path) => {
   pathLoading.value = true;
   try {
-    const res = await alistGetPath(props.alistId, path);
+    const res = await browseEngine(props.alistId, path);
     return res.data;
   } catch (err) {
     return [];

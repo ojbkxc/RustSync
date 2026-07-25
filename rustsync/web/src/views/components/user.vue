@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
-import { logout, editPwd } from "@/api/user";
+import { logout, changePassword } from "@/api";
 import { useAppStore } from "@/store/useAppStore";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
@@ -77,7 +77,7 @@ const submit = () => {
   formRef.value.validate((valid) => {
     if (!valid) return;
     loading.value = true;
-    editPwd({
+    changePassword({
       oldPasswd: form.value.oldPasswd,
       passwd: form.value.passwd,
     })
