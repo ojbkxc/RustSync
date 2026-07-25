@@ -5,9 +5,6 @@ build/
 .idea/
 .DS_Store
 
-# Build artifacts
-system/bin/
-
 # Node modules and frontend build
 node_modules/
 

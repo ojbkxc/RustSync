@@ -10,7 +10,7 @@ RUN npm run build
 FROM rust:1.85-alpine AS server-builder
 RUN apk add --no-cache musl-dev
 WORKDIR /app
-COPY server/Cargo.toml server/Cargo.lock ./
+COPY server/Cargo.toml ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
 RUN cargo build --release
 RUN rm -rf src
