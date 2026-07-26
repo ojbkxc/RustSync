@@ -148,26 +148,25 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let enable = if is_cron == 2 && !body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) { true } else { body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) };
-    let execute_result = {
-        let fields = extract_job_fields(&body);
-        let conn = state.db.get().unwrap();
-        let result = conn.execute(
-            "INSERT INTO job (enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT, useCacheS, scanIntervalS, method, sourceMode, interval, isCron, year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, exclude, minFileSize, maxFileSize) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            rusqlite::params![enable as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, is_cron, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23],
-        );
-        match result {
-            Ok(_) => Ok(conn.last_insert_rowid()),
-            Err(e) => Err(e),
-        }
-    };
-    match execute_result {
-        Ok(new_id) => {
-            let job_opt = if enable && is_cron != 2 { query_job(&state.db.get().unwrap(), new_id) } else { None };
-            if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
-            Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added")))
-        }
-        Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("添加失败: {}", e)))
-    }
+    let new_id = insert_job_sync(&state, &body, enable, is_cron);
+    let job_opt = if enable && is_cron != 2 { query_job_sync(&state, new_id) } else { None };
+    if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
+    Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added")))
+}
+
+fn insert_job_sync(state: &crate::state::SharedState, body: &serde_json::Value, enable: bool, is_cron: i32) -> i64 {
+    let fields = extract_job_fields(body);
+    let conn = state.db.get().unwrap();
+    conn.execute(
+        "INSERT INTO job (enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT, useCacheS, scanIntervalS, method, sourceMode, interval, isCron, year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, exclude, minFileSize, maxFileSize) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        rusqlite::params![enable as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, is_cron, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23],
+    ).expect("插入作业失败");
+    conn.last_insert_rowid()
+}
+
+fn query_job_sync(state: &crate::state::SharedState, id: i64) -> Option<Job> {
+    let conn = state.db.get().unwrap();
+    query_job(&conn, id)
 }
 
 /// PUT /api/jobs/:id
@@ -176,15 +175,8 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
     let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
     let job_id = id;
-    let (old_enable, old_is_cron, old_alist_id, old_src_path, old_dst_path, old_method, old_exclude, old_min_fs, old_max_fs) = {
-        let conn = state.db.get().unwrap();
-        let result: (i32, i32, Option<i64>, String, String, i32, Option<String>, Option<i64>, Option<i64>) = conn.query_row(
-            "SELECT enable, isCron, alistId, srcPath, dstPath, method, exclude, minFileSize, maxFileSize FROM job WHERE id=?", [job_id],
-            |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?, row.get::<_, Option<i64>>(2)?, row.get::<_, String>(3)?, row.get::<_, String>(4)?, row.get::<_, i32>(5)?, row.get::<_, Option<String>>(6)?, row.get::<_, Option<i64>>(7)?, row.get::<_, Option<i64>>(8)?)),
-        );
-        result.unwrap_or((0, 0, None, String::new(), String::new(), 0, None, None, None))
-    };
-    if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }
+    let old = get_old_job_fields(&state, job_id);
+    if old.enable == 1 && old.is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }
     let new_alist_id = body.get("alistId").and_then(|v| v.as_i64());
     let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let new_dst_path = body.get("dstPath").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -192,35 +184,61 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
     let new_exclude = body.get("exclude").and_then(|v| v.as_str()).map(|s| s.to_string());
     let new_min_fs = body.get("minFileSize").and_then(|v| v.as_i64());
     let new_max_fs = body.get("maxFileSize").and_then(|v| v.as_i64());
-    let clear_snapshot = old_alist_id != new_alist_id || old_src_path != new_src_path || old_dst_path != new_dst_path || old_method != new_method || old_exclude != new_exclude || old_min_fs != new_min_fs || old_max_fs != new_max_fs;
+    let clear_snapshot = old.alist_id != new_alist_id || old.src_path != new_src_path || old.dst_path != new_dst_path || old.method != new_method || old.exclude != new_exclude || old.min_fs != new_min_fs || old.max_fs != new_max_fs;
     crate::service::scheduler::get_scheduler().stop_job(job_id).await;
-    let execute_result = {
-        let fields = extract_job_fields(&body);
-        let conn = state.db.get().unwrap();
-        let result = conn.execute(
-            "UPDATE job SET enable=?, remark=?, srcPath=?, dstPath=?, alistId=?, useCacheT=?, scanIntervalT=?, useCacheS=?, scanIntervalS=?, method=?, sourceMode=?, interval=?, isCron=?, year=?, month=?, day=?, week=?, day_of_week=?, hour=?, minute=?, second=?, start_date=?, end_date=?, exclude=?, minFileSize=?, maxFileSize=? WHERE id=?",
-            rusqlite::params![fields.24 as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, fields.25, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23, job_id],
-        );
-        match result {
-            Ok(_) => {
-                if clear_snapshot {
-                    let _ = conn.execute("DELETE FROM job_source_snapshot WHERE jobId=?", [job_id]);
-                    let _ = conn.execute("DELETE FROM job_source_snapshot_meta WHERE jobId=?", [job_id]);
-                }
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
-    };
-    match execute_result {
-        Ok(()) => {
-            let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
-            let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-            let job_opt = if enable && is_cron != 2 { query_job(&state.db.get().unwrap(), job_id) } else { None };
-            if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
-            Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_updated")))
-        }
-        Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("更新失败: {}", e)))
+    update_job_sync(&state, &body, job_id, clear_snapshot);
+    let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
+    let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+    let job_opt = if enable && is_cron != 2 { query_job_sync(&state, job_id) } else { None };
+    if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
+    Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_updated")))
+}
+
+struct OldJobFields {
+    enable: i32,
+    is_cron: i32,
+    alist_id: Option<i64>,
+    src_path: String,
+    dst_path: String,
+    method: i32,
+    exclude: Option<String>,
+    min_fs: Option<i64>,
+    max_fs: Option<i64>,
+}
+
+fn get_old_job_fields(state: &crate::state::SharedState, job_id: i64) -> OldJobFields {
+    let conn = state.db.get().unwrap();
+    conn.query_row(
+        "SELECT enable, isCron, alistId, srcPath, dstPath, method, exclude, minFileSize, maxFileSize FROM job WHERE id=?",
+        [job_id],
+        |row| Ok(OldJobFields {
+            enable: row.get::<_, i32>(0)?,
+            is_cron: row.get::<_, i32>(1)?,
+            alist_id: row.get::<_, Option<i64>>(2)?,
+            src_path: row.get::<_, String>(3)?,
+            dst_path: row.get::<_, String>(4)?,
+            method: row.get::<_, i32>(5)?,
+            exclude: row.get::<_, Option<String>>(6)?,
+            min_fs: row.get::<_, Option<i64>>(7)?,
+            max_fs: row.get::<_, Option<i64>>(8)?,
+        }),
+    ).unwrap_or(OldJobFields {
+        enable: 0, is_cron: 0, alist_id: None,
+        src_path: String::new(), dst_path: String::new(),
+        method: 0, exclude: None, min_fs: None, max_fs: None,
+    })
+}
+
+fn update_job_sync(state: &crate::state::SharedState, body: &serde_json::Value, job_id: i64, clear_snapshot: bool) {
+    let fields = extract_job_fields(body);
+    let conn = state.db.get().unwrap();
+    conn.execute(
+        "UPDATE job SET enable=?, remark=?, srcPath=?, dstPath=?, alistId=?, useCacheT=?, scanIntervalT=?, useCacheS=?, scanIntervalS=?, method=?, sourceMode=?, interval=?, isCron=?, year=?, month=?, day=?, week=?, day_of_week=?, hour=?, minute=?, second=?, start_date=?, end_date=?, exclude=?, minFileSize=?, maxFileSize=? WHERE id=?",
+        rusqlite::params![fields.24 as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, fields.25, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23, job_id],
+    ).expect("更新作业失败");
+    if clear_snapshot {
+        let _ = conn.execute("DELETE FROM job_source_snapshot WHERE jobId=?", [job_id]);
+        let _ = conn.execute("DELETE FROM job_source_snapshot_meta WHERE jobId=?", [job_id]);
     }
 }
 
