@@ -154,7 +154,8 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
         "INSERT INTO job (enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT, useCacheS, scanIntervalS, method, sourceMode, interval, isCron, year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, exclude, minFileSize, maxFileSize) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         rusqlite::params![enable as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, is_cron, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23],
     ) { Ok(_) => { let new_id = conn.last_insert_rowid(); drop(conn);
-        if enable && is_cron != 2 { if let Some(job) = query_job(&state.db.get().unwrap(), new_id) { crate::service::scheduler::get_scheduler().start_job(job).await; } }
+        let job_opt = if enable && is_cron != 2 { query_job(&state.db.get().unwrap(), new_id) } else { None };
+        if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
         Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added"))) } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("添加失败: {}", e))) }
 }
 
@@ -187,7 +188,8 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
         rusqlite::params![fields.24 as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, fields.25, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23, job_id],
     ) { Ok(_) => { if clear_snapshot { let _ = conn.execute("DELETE FROM job_source_snapshot WHERE jobId=?", [job_id]); let _ = conn.execute("DELETE FROM job_source_snapshot_meta WHERE jobId=?", [job_id]); } drop(conn);
         let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true); let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-        if enable && is_cron != 2 { if let Some(job) = query_job(&state.db.get().unwrap(), job_id) { crate::service::scheduler::get_scheduler().start_job(job).await; } }
+        let job_opt = if enable && is_cron != 2 { query_job(&state.db.get().unwrap(), job_id) } else { None };
+        if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
         Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_updated"))) } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("更新失败: {}", e))) }
 }
 
