@@ -148,7 +148,7 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let enable = if is_cron == 2 && !body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) { true } else { body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) };
-    let new_id = insert_job_sync(&state, &body, enable, is_cron);
+let new_id = insert_job_sync(&state, &body, enable, is_cron);
     let job_opt = if enable && is_cron != 2 { query_job_sync(&state, new_id) } else { None };
     if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
     Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added")))
@@ -175,7 +175,7 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
     let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
     let job_id = id;
-    let old = get_old_job_fields(&state, job_id);
+let old = get_old_job_fields(&state, job_id);
     if old.enable == 1 && old.is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }
     let new_alist_id = body.get("alistId").and_then(|v| v.as_i64());
     let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("").to_string();
