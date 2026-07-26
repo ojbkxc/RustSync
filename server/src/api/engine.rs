@@ -187,9 +187,9 @@ pub async fn browse_engine(State(state): State<crate::state::SharedState>, Path(
     };
     let children: Vec<serde_json::Value> = match stmt.query_map([id], |row| {
         let name = row.get::<_, String>(0)?;
-        Ok(serde_json::json!({"name": name, "path": format!("{}/{}", path, name), "isDir": true}))
+        Ok(serde_json::json!({"path": name, "name": name, "leaf": true, "child": []}))
     }) { Ok(iter) => iter.filter_map(|r| r.ok()).collect(), Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))) };
-    Json(ApiResponse::ok(serde_json::json!({"engine": engine, "children": children, "path": path})))
+    Json(ApiResponse::ok(serde_json::json!({"engine": engine, "child": children, "path": path})))
 }
 
 // ==================== 存储挂载 ====================

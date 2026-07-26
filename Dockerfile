@@ -42,6 +42,7 @@ COPY --from=server-builder /app/locales ./locales
 COPY --from=server-builder /app/static ./static
 
 ENV RUSTSYNC_PORT=8023 \
+    RUSTSYNC_PASSWORD=admin \
     RUSTSYNC_EXPIRES=2 \
     RUSTSYNC_LOG_LEVEL=1 \
     RUSTSYNC_CONSOLE_LEVEL=2 \

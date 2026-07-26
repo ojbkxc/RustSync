@@ -5,7 +5,7 @@ pub const DEFAULT_DATA_DIR: &str = "data";
 pub const CONF_DIR: &str = "/data/adb/rustsync";
 pub const MOD_DIR: &str = "/data/adb/modules/rustsync_magisk";
 
-pub const DEFAULT_PASSWORD: &str = "RANDOM";
+pub const DEFAULT_PASSWORD: &str = "admin";
 pub const DEFAULT_PORT: u16 = 8023;
 pub const DEFAULT_EXPIRES: u32 = 2;
 pub const DEFAULT_LOG_LEVEL: u32 = 1;

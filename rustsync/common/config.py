@@ -5,7 +5,7 @@ import os
 from common.commonUtils import generatePasswd, readOrSet
 
 sysConfig = None
-DEFAULT_PASSWORD = 'RANDOM'
+DEFAULT_PASSWORD = 'admin'
 
 
 def getPasswordStr():

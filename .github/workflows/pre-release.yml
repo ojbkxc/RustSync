@@ -232,15 +232,15 @@ jobs:
           VERSION_CODE=$(echo "${{ env.PRE_VERSION }}" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
 
-          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-${{ env.PRE_VERSION }}.zip" .)
+          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-Magisk-${{ env.PRE_VERSION }}.zip" .)
           rm -rf "$MAGISK_TMP"
-          echo "Magisk: dist/${APP_NAME}-${{ env.PRE_VERSION }}.zip"
+          echo "Magisk: dist/${APP_NAME}-Magisk-${{ env.PRE_VERSION }}.zip"
 
       - name: 上传 Magisk artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-magisk
-          path: dist/${{ env.APP_NAME }}-*.zip
+          path: dist/${{ env.APP_NAME }}-Magisk-*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -300,9 +300,10 @@ jobs:
       - name: 打包
         run: |
           mkdir -p dist
-          cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
+          bin_name="${APP_NAME}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}"
+          cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
-          tar czf "../${APP_NAME}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}.tar.gz" rustsync-server
+          tar czf "../${bin_name}.tar.gz" "${bin_name}"
           cd ..
 
       - name: 上传 artifact
@@ -350,8 +351,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe dist/rustsync-server.exe
-          Compress-Archive -Path dist/rustsync-server.exe -DestinationPath "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.zip"
+          $exeName = "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.exe"
+          Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe "dist/$exeName"
+          Compress-Archive -Path "dist/$exeName" -DestinationPath "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.zip"
 
       - name: 上传 artifact
         uses: actions/upload-artifact@v4
@@ -406,9 +408,10 @@ jobs:
       - name: 打包
         run: |
           mkdir -p dist
-          cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
+          bin_name="${APP_NAME}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}"
+          cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
-          tar czf "../${APP_NAME}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}.tar.gz" rustsync-server
+          tar czf "../${bin_name}.tar.gz" "${bin_name}"
           cd ..
 
       - name: 上传 artifact
@@ -492,9 +495,11 @@ jobs:
       - name: 收集产物文件
         id: collect
         run: |
+          # 复制 docker-compose.yml 到 dist 目录
+          cp docker-compose.yml dist/docker-compose.yml
           {
             echo "files<<EOF"
-            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" \) 2>/dev/null || true
+            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" -o -name "docker-compose.yml" \) 2>/dev/null || true
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -524,15 +529,16 @@ jobs:
 
             ### 包含产物
             - **Build & Release**: Android APK、Magisk 模块、Linux (amd64/arm64)、Windows (amd64)、macOS (x86_64/arm64)
-            - **Magisk**: RustSync 面具模块刷入包
+            - **Magisk**: `RustSync-Magisk-${{ env.PRE_VERSION }}.zip` 面具模块刷入包
             - **Docker Hub**: `ojbkxc/rustsync:1.1.0` / `ojbkxc/rustsync:latest` (linux/amd64, linux/arm64)
+            - **Docker Compose**: `docker-compose.yml`
 
             ### 使用
-            - **APK**: 安装 `RustSync-app-1.1.0.apk`，WebView 自动加载管理面板
-            - **Magisk**: 下载 `RustSync-1.1.0.zip` 通过 Magisk 刷入
-            - **Linux/macOS**: `tar xzf` 解压后运行 `./rustsync-server`
-            - **Windows**: 解压后运行 `rustsync-server.exe`
-            - **Docker**: `docker pull ojbkxc/rustsync:latest`
+            - **APK**: 安装 `RustSync-app-${{ env.PRE_VERSION }}.apk`，WebView 自动加载管理面板
+            - **Magisk**: 下载 `RustSync-Magisk-${{ env.PRE_VERSION }}.zip` 通过 Magisk 刷入
+            - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
+            - **Windows**: 解压后运行 `RustSync-${{ env.PRE_VERSION }}-windows-amd64.exe`
+            - **Docker**: `docker pull ojbkxc/rustsync:latest` 或 `docker-compose up -d`
 
             ### 默认
             - 端口: `8023`

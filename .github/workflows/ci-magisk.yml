@@ -87,15 +87,15 @@ jobs:
           VERSION_CODE=$(echo "$VERSION" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
 
-          (cd "$MAGISK_TMP" && zip -qr "$GITHUB_WORKSPACE/RustSync-magisk-${VERSION}.zip" .)
+          (cd "$MAGISK_TMP" && zip -qr "$GITHUB_WORKSPACE/RustSync-Magisk-${VERSION}.zip" .)
           rm -rf "$MAGISK_TMP"
-          echo "Magisk: RustSync-magisk-${VERSION}.zip"
+          echo "Magisk: RustSync-Magisk-${VERSION}.zip"
 
       - name: 上传 Magisk artifact
         uses: actions/upload-artifact@v4
         with:
           name: RustSync-Magisk
-          path: RustSync-magisk-*.zip
+          path: RustSync-Magisk-*.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -136,13 +136,13 @@ jobs:
             Android Magisk 模块，通过 Magisk 刷入后自动运行 RustSync 服务。
 
             ### 使用
-            - 下载 `RustSync-magisk-${{ steps.version.outputs.version }}.zip`
+            - 下载 `RustSync-Magisk-${{ steps.version.outputs.version }}.zip`
             - 通过 Magisk 刷入
             - 重启后服务自动运行，访问 `http://127.0.0.1:8023`
 
             ### 默认
             - 端口: `8023`
             - 密码: `admin`
-          files: dist/RustSync-magisk-*.zip
+          files: dist/RustSync-Magisk-*.zip
           draft: false
           prerelease: false

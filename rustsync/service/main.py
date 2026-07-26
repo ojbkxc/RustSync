@@ -473,9 +473,11 @@ def _start_rust():
 
     env = os.environ.copy()
     env['RUSTSYNC_PORT'] = str(BUSINESS_PORT)
+    env['RUSTSYNC_PASSWORD'] = 'admin'
     env['RUSTSYNC_DATA_DIR'] = os.path.join(_app_dir, 'data')
     env['RUSTSYNC_LOG_DIR'] = os.path.join(_app_dir, 'data', 'log')
     env['RUSTSYNC_DB_PATH'] = os.path.join(_app_dir, 'data', 'rustsync.db')
+    env['TZ'] = 'Asia/Shanghai'
 
     try:
         _rust_process = subprocess.Popen(
