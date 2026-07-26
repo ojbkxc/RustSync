@@ -270,7 +270,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-magisk
-          path: dist/${{ env.APP_NAME }}-Magisk-*.zip
+          path: dist/RustSync-Magisk-*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -343,7 +343,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-linux-${{ matrix.arch }}.tar.gz
+          path: RustSync-${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   # ============================================================
@@ -394,7 +394,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-amd64
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-windows-amd64.zip
+          path: RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip
           retention-days: 1
 
   # ============================================================
@@ -455,7 +455,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-darwin-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-darwin-${{ matrix.arch }}.tar.gz
+          path: RustSync-${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   # ============================================================
@@ -502,26 +502,26 @@ jobs:
         if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
-          name: RustSync ${{ env.TAG }}
+          tag_name: ${{ needs.get-version.outputs.tag }}
+          name: RustSync ${{ needs.get-version.outputs.tag }}
           body: |
-            ## RustSync ${{ env.VERSION }}
+            ## RustSync ${{ needs.get-version.outputs.version }}
 
             Rust 重写版多平台同步服务。
 
             ### 产物
-            - **APK**: `RustSync-app-${{ env.VERSION }}.apk`
-            - **Magisk**: `RustSync-Magisk-${{ env.VERSION }}.zip` (通过 Magisk 刷入)
-            - **Linux**: `RustSync-${{ env.VERSION }}-linux-amd64.tar.gz` / `RustSync-${{ env.VERSION }}-linux-arm64.tar.gz`
-            - **Windows**: `RustSync-${{ env.VERSION }}-windows-amd64.zip`
-            - **macOS**: `RustSync-${{ env.VERSION }}-darwin-amd64.tar.gz` / `RustSync-${{ env.VERSION }}-darwin-arm64.tar.gz`
+            - **APK**: `RustSync-app-${{ needs.get-version.outputs.version }}.apk`
+            - **Magisk**: `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` (通过 Magisk 刷入)
+            - **Linux**: `RustSync-${{ needs.get-version.outputs.version }}-linux-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-linux-arm64.tar.gz`
+            - **Windows**: `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip`
+            - **macOS**: `RustSync-${{ needs.get-version.outputs.version }}-darwin-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-darwin-arm64.tar.gz`
             - **Docker**: `docker-compose.yml`
 
             ### 使用
             - **APK**: 安装后打开 App，WebView 自动加载管理面板
-            - **Magisk**: 下载 `RustSync-Magisk-${{ env.VERSION }}.zip` 通过 Magisk 刷入
+            - **Magisk**: 下载 `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` 通过 Magisk 刷入
             - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
-            - **Windows**: 解压后运行 `RustSync-${{ env.VERSION }}-windows-amd64.exe`
+            - **Windows**: 解压后运行 `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
             - **Docker**: `docker-compose up -d`
 
             ### 默认

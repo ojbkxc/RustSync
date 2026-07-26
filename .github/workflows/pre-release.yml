@@ -188,7 +188,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-magisk
-          path: dist/${{ env.APP_NAME }}-Magisk-*.zip
+          path: dist/RustSync-Magisk-*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -247,7 +247,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}.tar.gz
+          path: RustSync-1.1.0-linux-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   build-windows:
@@ -290,7 +290,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-amd64
-          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-windows-amd64.zip
+          path: RustSync-1.1.0-windows-amd64.zip
           retention-days: 1
 
   build-macos:
@@ -341,7 +341,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-darwin-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}.tar.gz
+          path: RustSync-1.1.0-darwin-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   build-docker:
@@ -374,14 +374,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ env.PRE_TAG }}
-            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ env.PRE_VERSION }}
-            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:latest
+            ojbkxc/rustsync:v1.1.0
+            ojbkxc/rustsync:1.1.0
+            ojbkxc/rustsync:latest
           labels: |
-            org.opencontainers.image.version=${{ env.PRE_VERSION }}
+            org.opencontainers.image.version=1.1.0
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
-            BUILD_VERSION=${{ env.PRE_TAG }}
+            BUILD_VERSION=v1.1.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -428,10 +428,10 @@ jobs:
         if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.PRE_TAG }}
-          name: RustSync ${{ env.PRE_TAG }} (Pre-release)
+          tag_name: v1.1.0
+          name: RustSync v1.1.0 (Pre-release)
           body: |
-            ## RustSync ${{ env.PRE_VERSION }} Pre-release
+            ## RustSync 1.1.0 Pre-release
             Auto-built pre-release, updated on every push to main.
             ### Included
             - APK, Magisk, Linux (amd64/arm64), Windows (amd64), macOS (x86_64/arm64)
