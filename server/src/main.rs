@@ -50,6 +50,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/auth/login", post(service::auth::login))
         .route("/api/auth/reset-password", put(service::auth::reset_password))
         .route("/api/auth/logout", delete(service::auth::logout))
+        .route("/api/health", get(api::system::health_check))
         .route("/", get(api::system::index));
 
     // ========== 需要认证的路由 ==========
@@ -66,6 +67,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/storage/:id", put(api::engine::update_storage).delete(api::engine::delete_storage))
         .route("/api/storage/local-browse", get(api::engine::local_browse))
         .route("/api/storage/smb-discover", get(api::engine::smb_discover))
+        .route("/api/storage/types", get(api::engine::storage_types))
         .route("/api/storage/sftp-test", post(api::engine::sftp_test))
         .route("/api/storage/sftp-browse", post(api::engine::sftp_browse))
         // 作业
@@ -74,6 +76,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/jobs/:id/run", post(api::job::run_job))
         .route("/api/jobs/:id/pause", post(api::job::pause_job))
         .route("/api/jobs/:id/resume", post(api::job::resume_job))
+        .route("/api/jobs/:id/abort", post(api::job::abort_job))
+        .route("/api/jobs/run-all", post(api::job::run_all_jobs))
         .route("/api/jobs/:id/current", get(api::job::job_current))
         .route("/api/jobs/:id/tasks", get(api::job::job_tasks))
         .route("/api/tasks/:id", delete(api::job::delete_task))

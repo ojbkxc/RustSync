@@ -78,6 +78,12 @@ pub async fn delete_notify(State(state): State<crate::state::SharedState>, Path(
 
 pub async fn send_notification(method: i32, params: &str, title: &str, body: &str) -> anyhow::Result<()> {
     let params: serde_json::Value = serde_json::from_str(params)?;
+    // 如果配置了不发送空消息，且当前标题是"无需同步"类消息，跳过
+    if params.get("notSendNull").and_then(|v| v.as_bool()).unwrap_or(false) {
+        if title.contains("无需同步") || title.contains("no sync") {
+            return Ok(());
+        }
+    }
     let client = reqwest::Client::new();
     match method {
         0 => {

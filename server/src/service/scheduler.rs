@@ -91,6 +91,12 @@ impl Scheduler {
                 break;
             }
 
+            // 如果变为手动模式，退出调度循环
+            if current_job.is_cron == 2 {
+                tracing::info!("作业 {} 变为手动模式，退出调度循环", job_id);
+                break;
+            }
+
             // 计算下次执行时间
             let delay = self.calculate_delay(&current_job);
             tracing::info!("作业 {} 将在 {} 秒后执行", job_id, delay);

@@ -329,6 +329,11 @@ pub async fn smb_discover() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse::ok(serde_json::json!([])))
 }
 
+/// GET /api/storage/types
+pub async fn storage_types() -> Json<ApiResponse<serde_json::Value>> {
+    Json(ApiResponse::ok(serde_json::json!(["local", "sftp", "smb", "ftp", "aliyun"])))
+}
+
 /// POST /api/storage/sftp-test
 pub async fn sftp_test(Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
     let host = body.get("host").and_then(|v| v.as_str()).unwrap_or("");

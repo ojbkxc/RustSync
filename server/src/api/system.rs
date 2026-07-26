@@ -16,6 +16,10 @@ pub async fn index() -> axum::response::Response {
     }
 }
 
+pub async fn health_check() -> impl IntoResponse {
+    Json(ApiResponse::ok(serde_json::json!({"status": "healthy", "version": env!("CARGO_PKG_VERSION")})))
+}
+
 pub async fn get_language() -> impl IntoResponse {
     Json(ApiResponse::ok(serde_json::json!({"language": i18n::get_current_lang(), "languages": i18n::get_supported_languages()})))
 }

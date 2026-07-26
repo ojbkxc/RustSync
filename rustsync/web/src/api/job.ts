@@ -40,6 +40,16 @@ export function resumeJob(id: number) {
   return request<ApiResponse<null>>({ url: `/api/jobs/${id}/resume`, method: 'post' })
 }
 
+// POST /api/jobs/:id/abort
+export function abortJob(id: number) {
+  return request<ApiResponse<null>>({ url: `/api/jobs/${id}/abort`, method: 'post' })
+}
+
+// POST /api/jobs/run-all
+export function runAllJobs() {
+  return request<ApiResponse<null>>({ url: `/api/jobs/run-all`, method: 'post' })
+}
+
 // ========== 任务查询 ==========
 
 // GET /api/jobs/:id/current

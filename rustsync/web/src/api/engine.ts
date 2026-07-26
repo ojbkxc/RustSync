@@ -68,6 +68,11 @@ export function smbDiscover() {
   return request<ApiResponse<unknown[]>>({ url: '/api/storage/smb-discover', method: 'get' })
 }
 
+// GET /api/storage/types
+export function storageTypes() {
+  return request<ApiResponse<string[]>>({ url: '/api/storage/types', method: 'get' })
+}
+
 // POST /api/storage/sftp-test
 export function sftpTest(data: Record<string, unknown>) {
   return request<ApiResponse<{ connected: boolean; message: string }>>({ url: '/api/storage/sftp-test', method: 'post', data })

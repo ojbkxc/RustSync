@@ -320,6 +320,37 @@ pub async fn resume_job(State(state): State<crate::state::SharedState>, Path(id)
     Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已启用"))
 }
 
+/// POST /api/jobs/:id/abort
+pub async fn abort_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>) -> Json<ApiResponse<serde_json::Value>> {
+    let conn = state.db.get().unwrap();
+    let _ = conn.execute("UPDATE job_task SET status=4 WHERE status IN (0, 1) AND jobId=?", [id]);
+    let _ = conn.execute("UPDATE job_task_item SET status=4 WHERE status IN (0, 1) AND taskId IN (SELECT id FROM job_task WHERE jobId=? AND status IN (0, 1))", [id]);
+    drop(conn);
+    crate::service::sync_engine::set_abort_flag(id);
+    Json(ApiResponse::ok_msg(serde_json::json!({}), "作业已中止"))
+}
+
+/// POST /api/jobs/run-all
+pub async fn run_all_jobs(State(state): State<crate::state::SharedState>) -> Json<ApiResponse<serde_json::Value>> {
+    let job_ids: Vec<i64> = {
+        let conn = state.db.get().unwrap();
+        let mut stmt = match conn.prepare("SELECT id FROM job WHERE enable=1 AND isCron != 2") {
+            Ok(s) => s, Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))),
+        };
+        stmt.query_map([], |row| row.get::<_, i64>(0)).map(|iter| iter.filter_map(|r| r.ok()).collect()).unwrap_or_default()
+    };
+    if job_ids.is_empty() { return Json(ApiResponse::bad_request(&i18n::t("no_job_for_run"))); }
+    for id in job_ids {
+        let running: i64 = {
+            let conn = state.db.get().unwrap();
+            conn.query_row("SELECT count(*) FROM job_task WHERE jobId=? AND status IN (0, 1)", [id], |row| row.get(0)).unwrap_or(0)
+        };
+        if running > 0 { continue; }
+        tokio::spawn(async move { let _ = crate::service::sync_engine::run_sync_for_job(id).await; });
+    }
+    Json(ApiResponse::ok_msg(serde_json::json!({}), "所有作业已开始执行"))
+}
+
 // ==================== 任务查询 ====================
 
 /// GET /api/jobs/:id/current
