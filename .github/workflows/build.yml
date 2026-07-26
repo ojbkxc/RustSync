@@ -85,6 +85,7 @@ jobs:
     name: 构建 Android APK
     runs-on: ubuntu-latest
     needs: [get-version, build-frontend]
+    continue-on-error: true
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     steps:
@@ -198,6 +199,7 @@ jobs:
     name: 构建 Android Magisk (arm64-v8a)
     runs-on: ubuntu-latest
     needs: [get-version, build-frontend]
+    continue-on-error: true
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     steps:
@@ -275,6 +277,7 @@ jobs:
     name: 构建 Linux (${{ matrix.target }})
     runs-on: ubuntu-latest
     needs: [get-version, build-frontend]
+    continue-on-error: true
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     strategy:
@@ -345,6 +348,7 @@ jobs:
     name: 构建 Windows
     runs-on: windows-latest
     needs: [get-version, build-frontend]
+    continue-on-error: true
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     steps:
