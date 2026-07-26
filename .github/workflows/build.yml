@@ -394,6 +394,7 @@ jobs:
     name: 构建 macOS (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
     needs: [get-version, build-frontend]
+    continue-on-error: true  # macOS runner 可能不可用，不阻塞发版
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     strategy:
@@ -452,6 +453,7 @@ jobs:
     name: 发布 Release
     runs-on: ubuntu-latest
     needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos]
+    if: (!cancelled())  # 即使部分平台构建失败也继续发版
     env:
       TAG: ${{ needs.get-version.outputs.tag }}
       VERSION: ${{ needs.get-version.outputs.version }}
@@ -466,11 +468,24 @@ jobs:
           pattern: dist-*
           path: dist
           merge-multiple: true
+        continue-on-error: true  # 部分平台构建失败时，产物可能不存在
 
       - name: 列出产物
-        run: ls -la dist/
+        run: |
+          echo "=== 可用产物 ==="
+          find dist -type f 2>/dev/null | sort || echo "  (无产物)"
+
+      - name: 收集产物文件
+        id: collect
+        run: |
+          {
+            echo "files<<EOF"
+            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" \) 2>/dev/null || true
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 创建 Release
+        if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
@@ -479,17 +494,6 @@ jobs:
             ## RustSync ${{ env.VERSION }}
 
             Rust 重写版多平台同步服务。
-
-            ### 下载
-            | 平台 | 文件 |
-            |------|------|
-            | Android APK | `RustSync-app-${{ env.VERSION }}.apk` |
-            | Android Magisk | `RustSync-${{ env.VERSION }}.zip` |
-            | Linux amd64 | `RustSync-${{ env.VERSION }}-linux-amd64.tar.gz` |
-            | Linux arm64 | `RustSync-${{ env.VERSION }}-linux-arm64.tar.gz` |
-            | Windows amd64 | `RustSync-${{ env.VERSION }}-windows-amd64.zip` |
-            | macOS amd64 | `RustSync-${{ env.VERSION }}-darwin-amd64.tar.gz` |
-            | macOS arm64 | `RustSync-${{ env.VERSION }}-darwin-arm64.tar.gz` |
 
             ### 使用
             - **APK**: 安装后打开 App，WebView 自动加载管理面板
@@ -500,11 +504,6 @@ jobs:
             ### 默认
             - 端口: `8023`
             - 密码: `admin`
-          files: |
-            dist/${{ env.APP_NAME }}-app-*.apk
-            dist/${{ env.APP_NAME }}-${{ env.VERSION }}.zip
-            dist/${{ env.APP_NAME }}-*-linux-*.tar.gz
-            dist/${{ env.APP_NAME }}-*-darwin-*.tar.gz
-            dist/${{ env.APP_NAME }}-*-windows-*.zip
+          files: ${{ steps.collect.outputs.files }}
           draft: false
           prerelease: false
