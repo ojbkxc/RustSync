@@ -1,7 +1,5 @@
 name: Pre-release v1.1.0
 
-# 每次推送 main 分支自动构建全部平台，发布预发布版本 v1.1.0
-
 on:
   push:
     branches:
@@ -15,54 +13,40 @@ on:
 permissions:
   contents: write
 
-env:
-  APP_NAME: RustSync
-  PRE_VERSION: 1.1.0
-  PRE_TAG: v1.1.0
-  DOCKER_USER: ojbkxc
-  DOCKER_NAME: rustsync
-
 jobs:
-  # ============================================================
-  # 构建前端（所有平台共享）
-  # ============================================================
   build-frontend:
-    name: 构建前端
+    name: Build Frontend
     runs-on: ubuntu-latest
     env:
+      APP_NAME: RustSync
       PRE_VERSION: 1.1.0
+      PRE_TAG: v1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
           cache: npm
           cache-dependency-path: rustsync/web/package-lock.json
-
-      - name: 构建前端
+      - name: Build Frontend
         working-directory: rustsync/web
         run: |
-          sed -i "s/__version_placeholder__/${{ env.PRE_VERSION }}/g" src/locales/zh-CN.yaml
-          sed -i "s/__version_placeholder__/${{ env.PRE_VERSION }}/g" src/locales/en.yaml
+          sed -i "s/__version_placeholder__/$PRE_VERSION/g" src/locales/zh-CN.yaml
+          sed -i "s/__version_placeholder__/$PRE_VERSION/g" src/locales/en.yaml
           npm ci
           npm run build
-
-      - name: 上传前端 artifact
+      - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
           retention-days: 1
 
-  # ============================================================
-  # Android APK (arm64-v8a)
-  # ============================================================
   build-android-apk:
-    name: 构建 Android APK
+    name: Build Android APK
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
@@ -73,72 +57,54 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: 下载前端
+      - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
-
-      - name: 准备前端资源
+      - name: Prepare Frontend
         run: |
           cd rustsync
           rm -rf front
           cp -r web/dist front
           test -f front/index.html
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
-
       - name: Install cargo-ndk
         run: |
           cargo install cargo-ndk
           rustup target add aarch64-linux-android
-
-      - name: 复制前端到 Rust static
+      - name: Copy Frontend to Rust static
         run: |
           mkdir -p server/static
           cp -r rustsync/front/* server/static/
-
-      - name: 构建 Rust (arm64-v8a)
+      - name: Build Rust (arm64-v8a)
         working-directory: server
         run: |
           cargo ndk --target aarch64-linux-android --platform 21 -- build --release
           mkdir -p ../rustsync/bin/arm64-v8a
           cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
-          echo "arm64-v8a built"
-
-      - name: 验证 Rust 二进制
+      - name: Verify Rust Binary
         run: |
           file rustsync/bin/arm64-v8a/rustsync_server
           test -f rustsync/bin/arm64-v8a/rustsync_server
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: 安装系统依赖
+      - name: Install System Dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            autoconf automake libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libffi-dev libssl-dev libsqlite3-dev libbz2-dev libreadline-dev \
-            libltdl-dev libtool-bin \
-            ccache git wget unzip zip \
-            openjdk-17-jdk build-essential
+          sudo apt-get install -y --no-install-recommends autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libffi-dev libssl-dev libsqlite3-dev libbz2-dev libreadline-dev libltdl-dev libtool-bin ccache git wget unzip zip openjdk-17-jdk build-essential
           echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
           echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
-
-      - name: 安装 Buildozer
+      - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
           python -m pip install "buildozer==1.5.0" "python-for-android==2024.01.21" "Cython==0.29.34" virtualenv
-
-      - name: 缓存 Buildozer
+      - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
@@ -147,24 +113,17 @@ jobs:
           key: buildozer-${{ runner.os }}-v2-p4a2024.01.21-py311-${{ hashFiles('rustsync/buildozer.spec') }}
           restore-keys: |
             buildozer-${{ runner.os }}-v2-p4a2024.01.21-py311-
-
-      - name: 编译 Android Debug APK
+      - name: Build Android Debug APK
         working-directory: rustsync
         run: |
           PYTHONWARNINGS="ignore:Unable to find acceptable character detection:UserWarning" buildozer -v android debug
-
-      - name: 整理 APK 产物
+      - name: Package APK
         run: |
           mkdir -p dist
           apk_path=$(find rustsync/bin -maxdepth 1 -name '*.apk' -print -quit)
-          if [ -z "$apk_path" ]; then
-            echo "::error::未找到 APK 产物"
-            exit 1
-          fi
+          if [ -z "$apk_path" ]; then echo "::error::APK not found"; exit 1; fi
           cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}.apk"
-          echo "APK: dist/${APP_NAME}-app-${PRE_VERSION}.apk"
-
-      - name: 上传 APK artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-apk
@@ -172,11 +131,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ============================================================
-  # Android Magisk 模块 (arm64-v8a)
-  # ============================================================
   build-android-magisk:
-    name: 构建 Android Magisk (arm64-v8a)
+    name: Build Android Magisk (arm64-v8a)
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
@@ -187,62 +143,48 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: 下载前端
+      - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
-
-      - name: 复制前端到 static
+      - name: Copy Frontend to static
         run: |
           mkdir -p server/static
           cp -r rustsync/web/dist/* server/static/
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
-
       - name: Install cargo-ndk
         run: |
           cargo install cargo-ndk
           rustup target add aarch64-linux-android
-
-      - name: 构建 Rust (arm64-v8a)
+      - name: Build Rust (arm64-v8a)
         working-directory: server
         run: |
           cargo ndk --target aarch64-linux-android --platform 21 -- build --release
           mkdir -p ../dist/bin/arm64-v8a
           cp target/aarch64-linux-android/release/rustsync-server ../dist/bin/arm64-v8a/rustsync_server
-          echo "arm64-v8a built"
-
-      - name: 验证 Rust 二进制
+      - name: Verify Rust Binary
         run: |
           file dist/bin/arm64-v8a/rustsync_server
           test -f dist/bin/arm64-v8a/rustsync_server
-
-      - name: 打包 Magisk 模块
+      - name: Package Magisk Module
         run: |
           MAGISK_TMP=$(mktemp -d)
           cp module.prop customize.sh service.sh "$MAGISK_TMP/"
           cp -r META-INF "$MAGISK_TMP/"
-
           mkdir -p "$MAGISK_TMP/system/bin"
           cp dist/bin/arm64-v8a/rustsync_server "$MAGISK_TMP/system/bin/rustsync_server"
-
           mkdir -p "$MAGISK_TMP/static"
           cp -r server/static/* "$MAGISK_TMP/static/"
-
-          sed -i "s/^version=.*/version=${{ env.PRE_VERSION }}/" "$MAGISK_TMP/module.prop"
-          VERSION_CODE=$(echo "${{ env.PRE_VERSION }}" | tr -d '.')
+          sed -i "s/^version=.*/version=${PRE_VERSION}/" "$MAGISK_TMP/module.prop"
+          VERSION_CODE=$(echo "$PRE_VERSION" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
-
-          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-Magisk-${{ env.PRE_VERSION }}.zip" .)
+          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-Magisk-${PRE_VERSION}.zip" .)
           rm -rf "$MAGISK_TMP"
-          echo "Magisk: dist/${APP_NAME}-Magisk-${{ env.PRE_VERSION }}.zip"
-
-      - name: 上传 Magisk artifact
+      - name: Upload Magisk Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-magisk
@@ -250,11 +192,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ============================================================
-  # Linux 独立二进制 (amd64 + arm64, musl 静态链接)
-  # ============================================================
   build-linux:
-    name: 构建 Linux (${{ matrix.target }})
+    name: Build Linux (${{ matrix.target }})
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
@@ -272,32 +211,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: 下载前端
+      - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
-
-      - name: 复制前端到 static
+      - name: Copy Frontend to static
         run: |
           mkdir -p server/static
           cp -r rustsync/web/dist/* server/static/
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: 安装 musl-tools
+      - name: Install musl-tools
         run: |
           sudo apt-get update -y
           sudo apt-get install -y musl-tools
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
-            cargo install cross
-          fi
-
-      - name: 构建 Rust
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then cargo install cross; fi
+      - name: Build Rust
         working-directory: server
         run: |
           if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
@@ -305,28 +237,21 @@ jobs:
           else
             cargo build --release --target ${{ matrix.target }}
           fi
-
-      - name: 打包
+      - name: Package
         run: |
           mkdir -p dist
           bin_name="${APP_NAME}-${PRE_VERSION}-linux-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
-          cd dist
-          tar czf "../${bin_name}.tar.gz" "${bin_name}"
-          cd ..
-
-      - name: 上传 artifact
+          cd dist && tar czf "../${bin_name}.tar.gz" "${bin_name}" && cd ..
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.arch }}
           path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
-  # ============================================================
-  # Windows 独立二进制 (amd64)
-  # ============================================================
   build-windows:
-    name: 构建 Windows
+    name: Build Windows
     runs-on: windows-latest
     needs: [build-frontend]
     continue-on-error: true
@@ -337,48 +262,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: 下载前端
+      - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
-
-      - name: 复制前端到 static
+      - name: Copy Frontend to static
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path server/static
           Copy-Item -Recurse rustsync/web/dist/* server/static/
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-
-      - name: 构建 Rust
+      - name: Build Rust
         working-directory: server
         run: cargo build --release --target x86_64-pc-windows-msvc
-
-      - name: 打包
+      - name: Package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          $exeName = "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.exe"
+          $exeName = "$env:APP_NAME-$env:PRE_VERSION-windows-amd64.exe"
           Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe "dist/$exeName"
-          Compress-Archive -Path "dist/$exeName" -DestinationPath "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.zip"
-
-      - name: 上传 artifact
+          Compress-Archive -Path "dist/$exeName" -DestinationPath "$env:APP_NAME-$env:PRE_VERSION-windows-amd64.zip"
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-amd64
           path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-windows-amd64.zip
           retention-days: 1
 
-  # ============================================================
-  # macOS 独立二进制 (amd64 + arm64)
-  # ============================================================
   build-macos:
-    name: 构建 macOS (${{ matrix.target }})
+    name: Build macOS (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
     needs: [build-frontend]
     continue-on-error: true
@@ -399,48 +315,37 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: 下载前端
+      - name: Download Frontend
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: rustsync/web/dist
-
-      - name: 复制前端到 static
+      - name: Copy Frontend to static
         run: |
           mkdir -p server/static
           cp -r rustsync/web/dist/* server/static/
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: 构建 Rust
+      - name: Build Rust
         working-directory: server
         run: cargo build --release --target ${{ matrix.target }}
-
-      - name: 打包
+      - name: Package
         run: |
           mkdir -p dist
           bin_name="${APP_NAME}-${PRE_VERSION}-darwin-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
-          cd dist
-          tar czf "../${bin_name}.tar.gz" "${bin_name}"
-          cd ..
-
-      - name: 上传 artifact
+          cd dist && tar czf "../${bin_name}.tar.gz" "${bin_name}" && cd ..
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-darwin-${{ matrix.arch }}
           path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
-  # ============================================================
-  # Docker 镜像构建并推送
-  # ============================================================
   build-docker:
-    name: 构建并推送 Docker 镜像
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
@@ -452,19 +357,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -484,15 +385,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ============================================================
-  # 创建 Pre-release（合并 Build & Release + Magisk + Docker）
-  # ============================================================
   create-pre-release:
-    name: 发布 Pre-release v1.1.0
+    name: Publish Pre-release v1.1.0
     runs-on: ubuntu-latest
     needs: [build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, build-docker]
     if: (!cancelled())
     env:
+      APP_NAME: RustSync
       PRE_VERSION: 1.1.0
       PRE_TAG: v1.1.0
     steps:
@@ -501,45 +400,31 @@ jobs:
           submodules: 'recursive'
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 下载全部构建产物
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: dist-*
           path: dist
           merge-multiple: true
         continue-on-error: true
-
-      - name: 列出产物
+      - name: List Artifacts
         run: |
-          echo "=== 可用产物 ==="
-          find dist -type f 2>/dev/null | sort || echo "  (无产物)"
-
-      - name: 收集产物文件
+          echo "=== Available Artifacts ==="
+          find dist -type f 2>/dev/null | sort || echo "  (none)"
+      - name: Collect Artifact Files
         id: collect
         run: |
-          # 复制 docker-compose.yml 到 dist 目录
           cp docker-compose.yml dist/docker-compose.yml
-          {
-            echo "files<<EOF"
-            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" -o -name "docker-compose.yml" \) 2>/dev/null || true
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: 更新 tag
+          { echo "files<<EOF"; find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" -o -name "docker-compose.yml" \) 2>/dev/null || true; echo "EOF"; } >> "$GITHUB_OUTPUT"
+      - name: Update Tag
         if: steps.collect.outputs.files != ''
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # 删除远程已有 tag
-          git push origin :refs/tags/${{ env.PRE_TAG }} 2>/dev/null || true
-
-          # 强制创建新 tag
-          git tag -f ${{ env.PRE_TAG }} -m "Pre-release ${{ env.PRE_TAG }}"
-          git push origin ${{ env.PRE_TAG }}
-
-      - name: 创建 / 更新 Pre-release
+          git push origin :refs/tags/$PRE_TAG 2>/dev/null || true
+          git tag -f $PRE_TAG -m "Pre-release $PRE_TAG"
+          git push origin $PRE_TAG
+      - name: Create/Update Pre-release
         if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
@@ -547,27 +432,14 @@ jobs:
           name: RustSync ${{ env.PRE_TAG }} (Pre-release)
           body: |
             ## RustSync ${{ env.PRE_VERSION }} Pre-release
-
-            自动构建的预发布版本，每次推送 main 分支时自动更新。
-
-            ### 包含产物
-            - **Build & Release**: Android APK、Magisk 模块、Linux (amd64/arm64)、Windows (amd64)、macOS (x86_64/arm64)
-            - **Magisk**: `RustSync-Magisk-${{ env.PRE_VERSION }}.zip` 面具模块刷入包
-            - **Docker Hub**: `ojbkxc/rustsync:1.1.0` / `ojbkxc/rustsync:latest` (linux/amd64, linux/arm64)
-            - **Docker Compose**: `docker-compose.yml`
-
-            ### 使用
-            - **APK**: 安装 `RustSync-app-${{ env.PRE_VERSION }}.apk`，WebView 自动加载管理面板
-            - **Magisk**: 下载 `RustSync-Magisk-${{ env.PRE_VERSION }}.zip` 通过 Magisk 刷入
-            - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
-            - **Windows**: 解压后运行 `RustSync-${{ env.PRE_VERSION }}-windows-amd64.exe`
-            - **Docker**: `docker pull ojbkxc/rustsync:latest` 或 `docker-compose up -d`
-
-            ### 默认
-            - 端口: `8023`
-            - 密码: `admin`
-
-            > 此版本随 main 分支推送自动更新，构建时间: ${{ github.event.head_commit.timestamp || 'N/A' }}
+            Auto-built pre-release, updated on every push to main.
+            ### Included
+            - APK, Magisk, Linux (amd64/arm64), Windows (amd64), macOS (x86_64/arm64)
+            - Docker: ojbkxc/rustsync:1.1.0 / ojbkxc/rustsync:latest
+            - docker-compose.yml
+            ### Defaults
+            - Port: 8023
+            - Password: admin
           files: ${{ steps.collect.outputs.files }}
           draft: false
           prerelease: true
