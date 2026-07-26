@@ -43,11 +43,9 @@ jobs:
 
       - name: 构建前端
         working-directory: rustsync/web
-        env:
-          VERSION: ${{ env.PRE_VERSION }}
         run: |
-          sed -i "s/__version_placeholder__/$VERSION/g" src/locales/zh-CN.yaml
-          sed -i "s/__version_placeholder__/$VERSION/g" src/locales/en.yaml
+          sed -i "s/__version_placeholder__/${{ env.PRE_VERSION }}/g" src/locales/zh-CN.yaml
+          sed -i "s/__version_placeholder__/${{ env.PRE_VERSION }}/g" src/locales/en.yaml
           npm ci
           npm run build
 
