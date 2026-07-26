@@ -441,11 +441,12 @@ onMounted(() => {
     margin: 8px;
     padding: 10px;
     box-sizing: border-box;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 
     &:hover {
       border-color: var(--active-color);
       transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .card-item-top {

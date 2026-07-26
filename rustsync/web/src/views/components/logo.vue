@@ -15,21 +15,15 @@
         font-size: 24px;
         font-weight: bold;
         margin-left: 12px;
-        background: linear-gradient(60deg,
-                #f5d31b 0%,
-                #d4a127 10%,
-                #f5d31b 20%,
-                #d4a127 30%,
-                #f5d31b 40%,
-                #d4a127 50%,
-                #f5d31b 60%,
-                #d4a127 70%,
-                #f5d31b 80%,
-                #d4a127 90%,
-                #f5d31b 100%);
+        background: linear-gradient(135deg,
+                #3b72f0 0%,
+                #6094f8 25%,
+                #22d3ee 50%,
+                #6094f8 75%,
+                #3b72f0 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: shine 8s linear infinite;
+        animation: shine 6s linear infinite;
         background-size: 200% auto;
     }
 

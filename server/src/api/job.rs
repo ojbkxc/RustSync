@@ -88,6 +88,34 @@ fn get_task_num_stats(conn: &rusqlite::Connection, task_id: i64) -> serde_json::
     serde_json::json!({"waitNum": wait_num, "runningNum": running_num, "successNum": success_num, "failNum": fail_num, "otherNum": other_num, "allNum": all_num})
 }
 
+fn get_task_size_stats(conn: &rusqlite::Connection, task_id: i64) -> serde_json::Value {
+    let sum_size = |status: i32| -> i64 {
+        conn.query_row(
+            "SELECT COALESCE(SUM(fileSize), 0) FROM job_task_item WHERE status=? AND taskId=? AND type != 1",
+            rusqlite::params![status, task_id],
+            |row| row.get(0),
+        ).unwrap_or(0)
+    };
+    let wait = sum_size(0);
+    let running = sum_size(1);
+    let success = sum_size(2);
+    let fail = sum_size(7);
+    let other: i64 = conn.query_row(
+        "SELECT COALESCE(SUM(fileSize), 0) FROM job_task_item WHERE status NOT IN (0,1,2,7) AND taskId=? AND type != 1",
+        [task_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    serde_json::json!({"wait": wait, "running": running, "success": success, "fail": fail, "other": other})
+}
+
+fn get_first_sync(conn: &rusqlite::Connection, task_id: i64) -> Option<i64> {
+    conn.query_row(
+        "SELECT MIN(createTime) FROM job_task_item WHERE taskId=? AND type != 1",
+        [task_id],
+        |row| row.get(0),
+    ).ok().flatten()
+}
+
 fn get_doing_task_items(conn: &rusqlite::Connection, task_id: i64) -> Vec<serde_json::Value> {
     let mut stmt = match conn.prepare("SELECT srcPath, dstPath, fileName, fileSize, type, status, progress, errMsg, createTime FROM job_task_item WHERE taskId=? AND status=1 ORDER BY createTime ASC") {
         Ok(s) => s, Err(_) => return vec![],
@@ -305,12 +333,14 @@ pub async fn job_current(State(state): State<crate::state::SharedState>, Path(id
     };
     if let Some((tid, jid, status, err_msg, run_time, _task_num, create_time)) = task {
         let task_num = get_task_num_stats(&conn, tid);
+        let task_size = get_task_size_stats(&conn, tid);
+        let first_sync = get_first_sync(&conn, tid);
         let doing_items = get_doing_task_items(&conn, tid);
         let duration = if let Some(rt) = run_time { (now_ts() - rt).max(0) } else { 0 };
         return Json(ApiResponse::ok(serde_json::json!({
             "id": tid, "jobId": jid, "status": status, "errMsg": err_msg, "runTime": run_time,
             "createTime": create_time, "scanFinish": status > 1, "doingTask": doing_items,
-            "duration": duration, "num": task_num, "size": {"wait": 0, "running": 0, "success": 0, "fail": 0, "other": 0},
+            "duration": duration, "firstSync": first_sync, "num": task_num, "size": task_size,
         })));
     }
     Json(ApiResponse::ok(serde_json::json!(null)))

@@ -18,7 +18,11 @@ const changeCollapse = function changeCollapse(val) {
         <appLeft :isCollapse="isMobile ? false : isCollapse" :isMobile="isMobile" @changeCollapse="changeCollapse"
             :class="`app-left${isCollapse ? ' left-collapse' : ''}`" />
         <div v-loading="appStore.loading" :class="`app-content${isCollapse ? ' content-collapse' : ''}`">
-            <router-view />
+            <router-view v-slot="{ Component }">
+                <Transition name="page" mode="out-in">
+                    <component :is="Component" />
+                </Transition>
+            </router-view>
         </div>
     </div>
 </template>
@@ -108,5 +112,19 @@ const changeCollapse = function changeCollapse(val) {
             padding-bottom: calc(64px + env(safe-area-inset-bottom));
         }
     }
+}
+
+/* ── Page transition ── */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

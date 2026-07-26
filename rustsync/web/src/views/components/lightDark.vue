@@ -5,8 +5,7 @@ const toggleDark = useToggle(isDark);
 </script>
 
 <template>
-    <el-switch :aria-checked="false" :aria-disabled="false" aria-label="切换暗色主题" @change="toggleDark" v-model="isDark"
-        style="--el-switch-on-color: #2c2c2c; --el-switch-off-color: #f2f2f2">
+    <el-switch :aria-checked="false" :aria-disabled="false" aria-label="切换暗色主题" @change="toggleDark" v-model="isDark">
         <template #active-action>
             <el-icon>
                 <svg viewBox="0 0 24 24" class="dark-icon">

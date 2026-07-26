@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted } from "vue";
 import logo from "@/views/components/logo.vue";
 import lightDark from "./components/lightDark.vue";
@@ -238,7 +238,7 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--shadow-xl);
 
     .login-header {
       width: 100%;

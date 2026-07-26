@@ -318,6 +318,17 @@ body {
 @font-face {
   font-family: "Digital Numbers";
   src: url("../DigitalNumbers.ttf");
+  font-display: swap;
+}
+
+/* ── Log viewer ── */
+:root {
+  --log-viewer-bg: #1e1e1e;
+  --log-viewer-text: #d4d4d4;
+}
+html.dark {
+  --log-viewer-bg: #0d1117;
+  --log-viewer-text: #c9d1d9;
 }
 
 /* ═══════════════════════════════════════════
@@ -399,7 +410,6 @@ html.dark {
   font-size: 13px;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 .el-table .el-table__row {
   transition: background var(--duration-fast) var(--ease-out-expo);
@@ -413,10 +423,11 @@ html.dark {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--duration-normal) var(--ease-out-expo);
+  transition: box-shadow var(--duration-normal) var(--ease-out-expo), transform var(--duration-normal) var(--ease-out-expo);
 }
 .el-card:hover {
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 /* ── Menu ── */
@@ -457,6 +468,16 @@ html.dark {
 }
 .el-message {
   border-radius: var(--radius-md);
+}
+
+/* ── Switch (theme toggle) ── */
+:root {
+  --el-switch-on-color: #2c2c2c;
+  --el-switch-off-color: #f2f2f2;
+}
+html.dark {
+  --el-switch-on-color: #3b72f0;
+  --el-switch-off-color: #374151;
 }
 
 /* ═══════════════════════════════════════════

@@ -1,12 +1,13 @@
 services:
   rustsync:
-    image: ghcr.io/ojbkxc/rustsync:latest
+    image: ojbkxc/rustsync:latest
     container_name: rustsync
-    restart: unless-stopped
-    ports:
-      - "8023:8023"
+    restart: always
+    network_mode: host
+    # ports:
+    #   - "8023:8023"  # 左侧的8023可以修改为你本机未被占用的端口
     volumes:
-      - rustsync_data:/app/data
+      - ./data:/app/data
     environment:
       - RUSTSYNC_PORT=8023
       - RUSTSYNC_PASSWORD=admin
@@ -28,7 +29,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  rustsync_data:
-    name: rustsync_data

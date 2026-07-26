@@ -128,11 +128,13 @@ const leftIndex = computed(() => route.meta?.leftIndex)
                 gap: 3px;
                 line-height: 1.15;
                 border-top: 2px solid transparent;
+                transition: border-top-color 0.2s ease, background-color 0.2s ease;
             }
 
             :deep(.el-menu-item.is-active) {
                 border-top-color: var(--active-color);
                 background-color: rgba(37, 99, 235, 0.08);
+                transition: border-top-color 0.2s ease, background-color 0.2s ease;
             }
 
             :deep(.el-menu-item .el-icon) {

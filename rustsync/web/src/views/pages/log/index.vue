@@ -150,8 +150,9 @@ onMounted(() => {
 .log-viewer {
   flex: 1;
   overflow: hidden;
-  background: #1e1e1e;
+  background: var(--log-viewer-bg);
   border-radius: 6px;
+  border: 1px solid var(--border-subtle);
 
   .log-viewer-content {
     height: 100%;
@@ -161,7 +162,7 @@ onMounted(() => {
     font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
     font-size: 13px;
     line-height: 1.6;
-    color: #d4d4d4;
+    color: var(--log-viewer-text);
     white-space: pre-wrap;
     word-break: break-all;
   }

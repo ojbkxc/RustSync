@@ -122,6 +122,7 @@ export interface TaskInfo {
   scanFinish: boolean
   doingTask: TaskItem[]
   duration: number
+  firstSync?: number | null
   num: TaskNumStats
   size: TaskSizeStats
 }

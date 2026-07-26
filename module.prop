@@ -1,6 +1,6 @@
 id=rustsync_magisk
 name=RustSync 同步服务
-version=1.0
-versionCode=1
+version=1.0.2
+versionCode=102
 author=ojbkxc
 description=开机自启动 RustSync，管理面板 http://手机IP:8023

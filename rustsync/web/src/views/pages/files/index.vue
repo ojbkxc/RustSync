@@ -340,7 +340,7 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-      <div v-if="!loading && fileList.length === 0" class="empty-state">{{ t("files.empty") }}</div>
+      <el-empty v-if="!loading && fileList.length === 0" :description="t('files.empty')" :image-size="72" />
     </div>
 
     <el-dialog v-model="createDialog" :title="createType === 'dir' ? t('files.newDirTitle') : t('files.newFileTitle')" width="400px" :append-to-body="true">
@@ -431,7 +431,7 @@ onMounted(() => {
     padding: 2px 4px;
     border-radius: 3px;
     &:hover {
-      background: rgba(64, 158, 255, 0.1);
+      background: var(--sidebar-hover);
     }
   }
 
@@ -459,13 +459,6 @@ onMounted(() => {
     color: var(--active-color);
     font-weight: 500;
   }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-muted);
-  font-size: 14px;
 }
 
 @media (max-width: 768px) {

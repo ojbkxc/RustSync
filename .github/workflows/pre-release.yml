@@ -1,60 +1,34 @@
-name: Build & Release
+name: Pre-release v1.1.0
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+      - '.gitignore'
   workflow_dispatch:
-    inputs:
-      version:
-        description: '版本号 (如 v1.0.1)'
-        required: true
-        default: 'v1.0.0'
 
 permissions:
   contents: write
 
 env:
   APP_NAME: RustSync
+  PRE_VERSION: 1.1.0
+  PRE_TAG: v1.1.0
+  DOCKER_USER: ojbkxc
+  DOCKER_NAME: rustsync
 
 jobs:
-  # ============================================================
-  # 获取版本号
-  # ============================================================
-  get-version:
-    name: 获取版本号
-    runs-on: ubuntu-latest
-    if: github.ref != 'refs/tags/v1.1.0'  # v1.1.0 由 pre-release workflow 处理
-    outputs:
-      tag: ${{ steps.version.outputs.tag }}
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: 确定版本号
-        id: version
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            TAG_VERSION="${{ github.event.inputs.version }}"
-          else
-            TAG_VERSION=${GITHUB_REF#refs/tags/}
-          fi
-          VERSION=${TAG_VERSION#v}
-          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $TAG_VERSION ($VERSION)"
-
   # ============================================================
   # 构建前端（所有平台共享）
   # ============================================================
   build-frontend:
     name: 构建前端
     runs-on: ubuntu-latest
-    needs: [get-version]
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,10 +62,10 @@ jobs:
   build-android-apk:
     name: 构建 Android APK
     runs-on: ubuntu-latest
-    needs: [get-version, build-frontend]
+    needs: [build-frontend]
     continue-on-error: true
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -132,7 +106,6 @@ jobs:
           mkdir -p ../rustsync/bin/arm64-v8a
           cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
           echo "arm64-v8a built"
-
 
       - name: 验证 Rust 二进制
         run: |
@@ -197,15 +170,15 @@ jobs:
           retention-days: 1
 
   # ============================================================
-  # Android Magisk 模块 (arm64-v8a, Rust 原生二进制)
+  # Android Magisk 模块 (arm64-v8a)
   # ============================================================
   build-android-magisk:
     name: 构建 Android Magisk (arm64-v8a)
     runs-on: ubuntu-latest
-    needs: [get-version, build-frontend]
+    needs: [build-frontend]
     continue-on-error: true
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -257,7 +230,6 @@ jobs:
           mkdir -p "$MAGISK_TMP/static"
           cp -r server/static/* "$MAGISK_TMP/static/"
 
-          # 更新 module.prop
           sed -i "s/^version=.*/version=${VERSION}/" "$MAGISK_TMP/module.prop"
           VERSION_CODE=$(echo "$VERSION" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
@@ -280,10 +252,10 @@ jobs:
   build-linux:
     name: 构建 Linux (${{ matrix.target }})
     runs-on: ubuntu-latest
-    needs: [get-version, build-frontend]
+    needs: [build-frontend]
     continue-on-error: true
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     strategy:
       matrix:
         include:
@@ -316,7 +288,6 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y musl-tools
-          # aarch64 musl 交叉编译使用 cross (docker-based)
           if [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
             cargo install cross
           fi
@@ -351,10 +322,10 @@ jobs:
   build-windows:
     name: 构建 Windows
     runs-on: windows-latest
-    needs: [get-version, build-frontend]
+    needs: [build-frontend]
     continue-on-error: true
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -401,11 +372,11 @@ jobs:
   build-macos:
     name: 构建 macOS (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
-    needs: [get-version, build-frontend]
-    continue-on-error: true  # macOS runner 可能不可用，不阻塞发版
-    timeout-minutes: 30  # runner 排队超时则取消，避免卡死整个流程
+    needs: [build-frontend]
+    continue-on-error: true
+    timeout-minutes: 30
     env:
-      VERSION: ${{ needs.get-version.outputs.version }}
+      VERSION: ${{ env.PRE_VERSION }}
     strategy:
       matrix:
         include:
@@ -456,20 +427,65 @@ jobs:
           retention-days: 1
 
   # ============================================================
-  # 创建 GitHub Release
+  # Docker 镜像构建并推送
   # ============================================================
-  create-release:
-    name: 发布 Release
+  build-docker:
+    name: 构建并推送 Docker 镜像
     runs-on: ubuntu-latest
-    needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos]
-    if: (!cancelled()) && github.ref != 'refs/tags/v1.1.0'  # 即使部分平台构建失败也继续发版；v1.1.0 由 pre-release workflow 处理
-    env:
-      TAG: ${{ needs.get-version.outputs.tag }}
-      VERSION: ${{ needs.get-version.outputs.version }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./rustsync/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ env.PRE_TAG }}
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ env.PRE_VERSION }}
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ env.PRE_VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            BUILD_VERSION=${{ env.PRE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
+  # 创建 Pre-release（合并 Build & Release + Magisk + Docker）
+  # ============================================================
+  create-pre-release:
+    name: 发布 Pre-release v1.1.0
+    runs-on: ubuntu-latest
+    needs: [build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, build-docker]
+    if: (!cancelled())
+    env:
+      TAG: ${{ env.PRE_TAG }}
+      VERSION: ${{ env.PRE_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 下载全部构建产物
         uses: actions/download-artifact@v4
@@ -477,7 +493,7 @@ jobs:
           pattern: dist-*
           path: dist
           merge-multiple: true
-        continue-on-error: true  # 部分平台构建失败时，产物可能不存在
+        continue-on-error: true
 
       - name: 列出产物
         run: |
@@ -493,26 +509,47 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: 创建 Release
+      - name: 更新 tag
+        if: steps.collect.outputs.files != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 删除远程已有 tag
+          git push origin :refs/tags/${TAG} 2>/dev/null || true
+
+          # 强制创建新 tag
+          git tag -f ${TAG} -m "Pre-release ${TAG}"
+          git push origin ${TAG}
+
+      - name: 创建 / 更新 Pre-release
         if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          name: RustSync ${{ env.TAG }}
+          name: RustSync ${{ env.TAG }} (Pre-release)
           body: |
-            ## RustSync ${{ env.VERSION }}
+            ## RustSync ${{ env.VERSION }} Pre-release
 
-            Rust 重写版多平台同步服务。
+            自动构建的预发布版本，每次推送 main 分支时自动更新。
+
+            ### 包含产物
+            - **Build & Release**: Android APK、Magisk 模块、Linux (amd64/arm64)、Windows (amd64)、macOS (x86_64/arm64)
+            - **Magisk**: RustSync 面具模块刷入包
+            - **Docker Hub**: `ojbkxc/rustsync:1.1.0` / `ojbkxc/rustsync:latest` (linux/amd64, linux/arm64)
 
             ### 使用
-            - **APK**: 安装后打开 App，WebView 自动加载管理面板
-            - **Magisk**: 下载 `RustSync-${{ env.VERSION }}.zip` 通过 Magisk 刷入
+            - **APK**: 安装 `RustSync-app-1.1.0.apk`，WebView 自动加载管理面板
+            - **Magisk**: 下载 `RustSync-1.1.0.zip` 通过 Magisk 刷入
             - **Linux/macOS**: `tar xzf` 解压后运行 `./rustsync-server`
             - **Windows**: 解压后运行 `rustsync-server.exe`
+            - **Docker**: `docker pull ojbkxc/rustsync:latest`
 
             ### 默认
             - 端口: `8023`
             - 密码: `admin`
+
+            > 此版本随 main 分支推送自动更新，构建时间: ${{ github.event.head_commit.timestamp || 'N/A' }}
           files: ${{ steps.collect.outputs.files }}
           draft: false
-          prerelease: false
+          prerelease: true

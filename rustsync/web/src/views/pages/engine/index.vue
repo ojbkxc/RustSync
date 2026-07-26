@@ -1391,11 +1391,12 @@ onMounted(() => {
     border-radius: 6px;
     box-sizing: border-box;
     background-color: var(--home-item-background-color);
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 
     &:hover {
       border-color: var(--active-color);
       transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
     }
 
     .card-item-top {
