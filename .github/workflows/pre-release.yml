@@ -1,5 +1,7 @@
 name: Pre-release v1.1.0
 
+# 每次推送 main 分支自动构建全部平台，发布预发布版本 v1.1.0
+
 on:
   push:
     branches:
