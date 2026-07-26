@@ -29,6 +29,8 @@ jobs:
   build-frontend:
     name: 构建前端
     runs-on: ubuntu-latest
+    env:
+      PRE_VERSION: 1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,6 +66,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -156,8 +161,8 @@ jobs:
             echo "::error::未找到 APK 产物"
             exit 1
           fi
-          cp "$apk_path" "dist/${APP_NAME}-app-${{ env.PRE_VERSION }}.apk"
-          echo "APK: dist/${APP_NAME}-app-${{ env.PRE_VERSION }}.apk"
+          cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}.apk"
+          echo "APK: dist/${APP_NAME}-app-${PRE_VERSION}.apk"
 
       - name: 上传 APK artifact
         uses: actions/upload-artifact@v4
@@ -175,6 +180,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -250,6 +258,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
     strategy:
       matrix:
         include:
@@ -298,7 +309,7 @@ jobs:
       - name: 打包
         run: |
           mkdir -p dist
-          bin_name="${APP_NAME}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}"
+          bin_name="${APP_NAME}-${PRE_VERSION}-linux-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
           tar czf "../${bin_name}.tar.gz" "${bin_name}"
@@ -319,6 +330,9 @@ jobs:
     runs-on: windows-latest
     needs: [build-frontend]
     continue-on-error: true
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -369,6 +383,9 @@ jobs:
     needs: [build-frontend]
     continue-on-error: true
     timeout-minutes: 30
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
     strategy:
       matrix:
         include:
@@ -406,7 +423,7 @@ jobs:
       - name: 打包
         run: |
           mkdir -p dist
-          bin_name="${APP_NAME}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}"
+          bin_name="${APP_NAME}-${PRE_VERSION}-darwin-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
           tar czf "../${bin_name}.tar.gz" "${bin_name}"
@@ -426,6 +443,11 @@ jobs:
     name: 构建并推送 Docker 镜像
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      DOCKER_USER: ojbkxc
+      DOCKER_NAME: rustsync
+      PRE_VERSION: 1.1.0
+      PRE_TAG: v1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -470,6 +492,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, build-docker]
     if: (!cancelled())
+    env:
+      PRE_VERSION: 1.1.0
+      PRE_TAG: v1.1.0
     steps:
       - uses: actions/checkout@v4
         with:
