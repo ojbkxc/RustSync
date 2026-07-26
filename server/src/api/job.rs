@@ -1,6 +1,5 @@
 use axum::{
     extract::{Path, Query, State},
-    response::IntoResponse,
     Json,
 };
 use crate::data::models::Job;
@@ -38,7 +37,7 @@ fn normalize_source_mode(value: &serde_json::Value) -> Result<i32, String> {
     }
 }
 
-fn validate_and_normalize_job(body: &mut serde_json::Value) -> Result<(), String> {
+fn validate_and_normalize_job(mut body: serde_json::Value) -> Result<serde_json::Value, String> {
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0);
     let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
     if is_cron == 2 && !enable {
@@ -76,7 +75,7 @@ fn validate_and_normalize_job(body: &mut serde_json::Value) -> Result<(), String
     if !src_path.is_empty() && !dst_path.is_empty() {
         for dst in dst_path.split(':') { if paths_overlap(src_path, dst) { return Err(i18n::t("source_target_overlap")); } }
     }
-    Ok(())
+    Ok(body)
 }
 
 fn get_task_num_stats(conn: &rusqlite::Connection, task_id: i64) -> serde_json::Value {
@@ -144,10 +143,9 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 }
 
 /// POST /api/jobs
-pub async fn create_job(State(state): State<crate::state::SharedState>, Json(body): Json<serde_json::Value>) -> axum::response::Response {
-    let mut body = body;
-    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)).into_response(); }
-    if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")).into_response(); }
+pub async fn create_job(State(state): State<crate::state::SharedState>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
+    let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
+    if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let conn = state.db.get().unwrap();
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let enable = if is_cron == 2 && !body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) { true } else { body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) };
@@ -157,21 +155,21 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
         rusqlite::params![enable as i32, fields.0, fields.1, fields.2, fields.3, fields.4, fields.5, fields.6, fields.7, fields.8, fields.9, fields.10, is_cron, fields.11, fields.12, fields.13, fields.14, fields.15, fields.16, fields.17, fields.18, fields.19, fields.20, fields.21, fields.22, fields.23],
     ) { Ok(_) => { let new_id = conn.last_insert_rowid(); drop(conn);
         if enable && is_cron != 2 { if let Some(job) = query_job(&state.db.get().unwrap(), new_id) { crate::service::scheduler::get_scheduler().start_job(job).await; } }
-        Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added"))).into_response() } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("添加失败: {}", e))).into_response() }
+        Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_added"))) } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("添加失败: {}", e))) }
 }
 
 /// PUT /api/jobs/:id
-pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(body): Json<serde_json::Value>) -> axum::response::Response {
+pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
     let mut body = body;
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
-    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)).into_response(); }
+    let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
     let job_id = id;
     let conn = state.db.get().unwrap();
     let (old_enable, old_is_cron, old_alist_id, old_src_path, old_dst_path, old_method, old_exclude, old_min_fs, old_max_fs): (i32, i32, Option<i64>, String, String, i32, Option<String>, Option<i64>, Option<i64>) = conn.query_row(
         "SELECT enable, isCron, alistId, srcPath, dstPath, method, exclude, minFileSize, maxFileSize FROM job WHERE id=?", [job_id],
         |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?, row.get::<_, Option<i64>>(2)?, row.get::<_, String>(3)?, row.get::<_, String>(4)?, row.get::<_, i32>(5)?, row.get::<_, Option<String>>(6)?, row.get::<_, Option<i64>>(7)?, row.get::<_, Option<i64>>(8)?)),
     ).unwrap_or((0, 0, None, String::new(), String::new(), 0, None, None, None));
-    if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))).into_response(); }
+    if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }
     drop(conn);
     let new_alist_id = body.get("alistId").and_then(|v| v.as_i64());
     let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("");
@@ -190,7 +188,7 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
     ) { Ok(_) => { if clear_snapshot { let _ = conn.execute("DELETE FROM job_source_snapshot WHERE jobId=?", [job_id]); let _ = conn.execute("DELETE FROM job_source_snapshot_meta WHERE jobId=?", [job_id]); } drop(conn);
         let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true); let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
         if enable && is_cron != 2 { if let Some(job) = query_job(&state.db.get().unwrap(), job_id) { crate::service::scheduler::get_scheduler().start_job(job).await; } }
-        Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_updated"))).into_response() } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("更新失败: {}", e))).into_response() }
+        Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("job_updated"))) } Err(e) => Json(ApiResponse::<serde_json::Value>::err(&format!("更新失败: {}", e))) }
 }
 
 /// DELETE /api/jobs/:id
