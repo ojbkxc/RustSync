@@ -1,1 +1,146 @@
-bmFtZTogUmVsZWFzZSB0byBEb2NrZXIgSHViDQoNCm9uOg0KICB3b3JrZmxvd19kaXNwYXRjaDoNCiAgICBpbnB1dHM6DQogICAgICB2ZXJzaW9uX3R5cGU6DQogICAgICAgIGRlc2NyaXB0aW9uOiAn54mI5pys57G75Z6LJw0KICAgICAgICByZXF1aXJlZDogdHJ1ZQ0KICAgICAgICBkZWZhdWx0OiAncGF0Y2gnDQogICAgICAgIHR5cGU6IGNob2ljZQ0KICAgICAgICBvcHRpb25zOg0KICAgICAgICAgIC0gcGF0Y2gNCiAgICAgICAgICAtIG1pbm9yDQogICAgICAgICAgLSBtYWpvcg0KICAgICAgY3VzdG9tX3ZlcnNpb246DQogICAgICAgIGRlc2NyaXB0aW9uOiAn6Ieq5a6a5LmJ54mI5pys5Y+3ICjlpoIgMS4wLjEpJw0KICAgICAgICByZXF1aXJlZDogZmFsc2UNCiAgICAgICAgZGVmYXVsdDogJycNCiAgICAgICAgdHlwZTogc3RyaW5nDQoNCnBlcm1pc3Npb25zOg0KICBjb250ZW50czogd3JpdGUNCg0KZW52Og0KICBET0NLRVJfVVNFUjogb2pia3hjDQogIERPQ0tFUl9OQU1FOiBydXN0c3luYw0KDQpqb2JzOg0KICByZWxlYXNlOg0KICAgIHJ1bnMtb246IHVidW50dS1sYXRlc3QNCiAgICBzdGVwczoNCiAgICAgIC0gbmFtZTogQ2hlY2tvdXQgY29kZQ0KICAgICAgICB1c2VzOiBhY3Rpb25zL2NoZWNrb3V0QHY0DQogICAgICAgIHdpdGg6DQogICAgICAgICAgZmV0Y2gtZGVwdGg6IDANCiAgICAgICAgICB0b2tlbjogJHt7IHNlY3JldHMuR0lUSFVCX1RPS0VOIH19DQogICAgICAgICAgc3VibW9kdWxlczogJ3JlY3Vyc2l2ZScNCg0KICAgICAgLSBuYW1lOiBHZXQgY3VycmVudCB2ZXJzaW9uDQogICAgICAgIGlkOiBnZXRfdmVyc2lvbg0KICAgICAgICBydW46IHwNCiAgICAgICAgICBMQVRFU1RfVEFHPSQoZ2l0IGRlc2NyaWJlIC0tdGFncyAtLWFiYnJldj0wIDI+L2Rldi9udWxsIHx8IGVjaG8gInYwLjAuMCIpDQogICAgICAgICAgVEFHX1ZFUlNJT049JHtMQVRFU1RfVEFHI3Z9DQoNCiAgICAgICAgICBpZiBbIC1mIFZFUlNJT04gXTsgdGhlbg0KICAgICAgICAgICAgRklMRV9WRVJTSU9OPSQoY2F0IFZFUlNJT04gfCB0ciAtZCAnWzpzcGFjZTpdJykNCiAgICAgICAgICBlbHNlDQogICAgICAgICAgICBGSUxFX1ZFUlNJT049IjAuMC4wIg0KICAgICAgICAgIGZpDQoNCiAgICAgICAgICBmdW5jdGlvbiB2ZXJzaW9uX2d0KCkgeyB0ZXN0ICIkKHByaW50ZiAnJXNcbicgIiRAIiB8IHNvcnQgLVYgfCBoZWFkIC1uIDEpIiAhPSAiJDEiOyB9DQoNCiAgICAgICAgICBpZiB2ZXJzaW9uX2d0ICIkRklMRV9WRVJTSU9OIiAiJFRBR19WRVJTSU9OIjsgdGhlbg0KICAgICAgICAgICAgVkVSU0lPTj0iJEZJTEVfVkVSU0lPTiINCiAgICAgICAgICBlbHNlDQogICAgICAgICAgICBWRVJTSU9OPSIkVEFHX1ZFUlNJT04iDQogICAgICAgICAgZmkNCg0KICAgICAgICAgIGVjaG8gImN1cnJlbnRfdmVyc2lvbj0kVkVSU0lPTiIgPj4gJEdJVEhVQl9PVVRQVVQNCg0KICAgICAgLSBuYW1lOiBDYWxjdWxhdGUgbmV4dCB2ZXJzaW9uDQogICAgICAgIGlkOiBuZXh0X3ZlcnNpb24NCiAgICAgICAgZW52Og0KICAgICAgICAgIFZFUlNJT05fVFlQRTogJHt7IGdpdGh1Yi5ldmVudC5pbnB1dHMudmVyc2lvbl90eXBlIH19DQogICAgICAgICAgQ1VTVE9NX1ZFUlNJT046ICR7eyBnaXRodWIuZXZlbnQuaW5wdXRzLmN1c3RvbV92ZXJzaW9uIH19DQogICAgICAgIHJ1bjogfA0KICAgICAgICAgIGlmIFsgLW4gIiRDVVNUT01fVkVSU0lPTiIgXTsgdGhlbg0KICAgICAgICAgICAgTkVXX1ZFUlNJT049IiRDVVNUT01fVkVSU0lPTiINCiAgICAgICAgICBlbHNlDQogICAgICAgICAgICBWRVJTSU9OPSIke3sgc3RlcHMuZ2V0X3ZlcnNpb24ub3V0cHV0cy5jdXJyZW50X3ZlcnNpb24gfX0iDQogICAgICAgICAgICBCQVNFX1ZFUlNJT049JChlY2hvICIkVkVSU0lPTiIgfCBzZWQgJ3MvLS4qJC8vJykNCg0KICAgICAgICAgICAgSUZTPScuJyByZWFkIC1yIC1hIHZlcnNpb25fcGFydHMgPDw8ICIkQkFTRV9WRVJTSU9OIg0KICAgICAgICAgICAgTUFKT1I9IiR7dmVyc2lvbl9wYXJ0c1swXTotMH0iDQogICAgICAgICAgICBNSU5PUj0iJHt2ZXJzaW9uX3BhcnRzWzFdOi0wfSINCiAgICAgICAgICAgIFBBVENIPSIke3ZlcnNpb25fcGFydHNbMl06LTB9Ig0KDQogICAgICAgICAgICBjYXNlICIkVkVSU0lPTl9UWVBFIiBpbg0KICAgICAgICAgICAgICBtYWpvcikNCiAgICAgICAgICAgICAgICBORVdfVkVSU0lPTj0iJCgoTUFKT1IgKyAxKSkuMC4wIg0KICAgICAgICAgICAgICAgIDs7DQogICAgICAgICAgICAgIG1pbm9yKQ0KICAgICAgICAgICAgICAgIE5FV19WRVJTSU9OPSIke01BSk9SfS4kKChNSU5PUiArIDEpKS4wIg0KICAgICAgICAgICAgICAgIDs7DQogICAgICAgICAgICAgICopDQogICAgICAgICAgICAgICAgTkVXX1ZFUlNJT049IiR7TUFKT1J9LiR7TUlOT1J9LiQoKFBBVENIICsgMSkpIg0KICAgICAgICAgICAgICAgIDs7DQogICAgICAgICAgICBlc2FjDQogICAgICAgICAgZmkNCg0KICAgICAgICAgIGVjaG8gIm5ld192ZXJzaW9uPSRORVdfVkVSU0lPTiIgPj4gJEdJVEhVQl9PVVRQVVQNCiAgICAgICAgICBlY2hvICJuZXdfdGFnPXYkTkVXX1ZFUlNJT04iID4+ICRHSVRIVUJfT1VUUFVUDQoNCiAgICAgIC0gbmFtZTogVXBkYXRlIFZFUlNJT04gZmlsZQ0KICAgICAgICBydW46IHwNCiAgICAgICAgICBlY2hvICIke3sgc3RlcHMubmV4dF92ZXJzaW9uLm91dHB1dHMubmV3X3ZlcnNpb24gfX0iID4gVkVSU0lPTg0KICAgICAgICAgIGVjaG8gIiR7eyBzdGVwcy5uZXh0X3ZlcnNpb24ub3V0cHV0cy5uZXdfdGFnIH19LGxhdGVzdCIgPiBydXN0c3luYy92ZXJzaW9uLnR4dA0KDQogICAgICAtIG5hbWU6IENvbW1pdCBhbmQgY3JlYXRlIHRhZw0KICAgICAgICBydW46IHwNCiAgICAgICAgICBnaXQgY29uZmlnIHVzZXIubmFtZSAiZ2l0aHViLWFjdGlvbnNbYm90XSINCiAgICAgICAgICBnaXQgY29uZmlnIHVzZXIuZW1haWwgImdpdGh1Yi1hY3Rpb25zW2JvdF1AdXNlcnMubm9yZXBseS5naXRodWIuY29tIg0KDQogICAgICAgICAgZ2l0IGFkZCBWRVJTSU9OIHJ1c3RzeW5jL3ZlcnNpb24udHh0DQogICAgICAgICAgaWYgISBnaXQgZGlmZiAtLWNhY2hlZCAtLXF1aWV0OyB0aGVuDQogICAgICAgICAgICBnaXQgY29tbWl0IC1tICJjaG9yZTogYnVtcCB2ZXJzaW9uIHRvICR7eyBzdGVwcy5uZXh0X3ZlcnNpb24ub3V0cHV0cy5uZXdfdGFnIH19IFtza2lwIGNpXSINCiAgICAgICAgICBmaQ0KDQogICAgICAgICAgTkVXX1RBRz0iJHt7IHN0ZXBzLm5leHRfdmVyc2lvbi5vdXRwdXRzLm5ld190YWcgfX0iDQogICAgICAgICAgaWYgZ2l0IHJldi1wYXJzZSAiJE5FV19UQUciID4vZGV2L251bGwgMj4mMTsgdGhlbg0KICAgICAgICAgICAgZWNobyAiVGFnICRORVdfVEFHIGFscmVhZHkgZXhpc3RzLCBza2lwcGluZyB0YWcgY3JlYXRpb24iDQogICAgICAgICAgZWxzZQ0KICAgICAgICAgICAgZ2l0IHRhZyAtYSAiJE5FV19UQUciIC1tICJSZWxlYXNlICRORVdfVEFHIg0KICAgICAgICAgICAgZ2l0IHB1c2ggb3JpZ2luIEhFQUQ6bWFpbiAiJE5FV19UQUciDQogICAgICAgICAgZmkNCg0KICAgICAgLSBuYW1lOiBTZXQgdXAgUUVNVQ0KICAgICAgICB1c2VzOiBkb2NrZXIvc2V0dXAtcWVtdS1hY3Rpb25AdjMNCg0KICAgICAgLSBuYW1lOiBTZXQgdXAgRG9ja2VyIEJ1aWxkeA0KICAgICAgICB1c2VzOiBkb2NrZXIvc2V0dXAtYnVpbGR4LWFjdGlvbkB2Mw0KDQogICAgICAtIG5hbWU6IExvZyBpbiB0byBEb2NrZXIgSHViDQogICAgICAgIHVzZXM6IGRvY2tlci9sb2dpbi1hY3Rpb25AdjMNCiAgICAgICAgd2l0aDoNCiAgICAgICAgICB1c2VybmFtZTogJHt7IHNlY3JldHMuRE9DS0VSX1VTRVJOQU1FIH19DQogICAgICAgICAgcGFzc3dvcmQ6ICR7eyBzZWNyZXRzLkRPQ0tFUl9UT0tFTiB9fQ0KDQogICAgICAtIG5hbWU6IEJ1aWxkIGFuZCBwdXNoIERvY2tlciBpbWFnZQ0KICAgICAgICB1c2VzOiBkb2NrZXIvYnVpbGQtcHVzaC1hY3Rpb25AdjYNCiAgICAgICAgd2l0aDoNCiAgICAgICAgICBjb250ZXh0OiAuDQogICAgICAgICAgZmlsZTogLi9ydXN0c3luYy9Eb2NrZXJmaWxlDQogICAgICAgICAgcGxhdGZvcm1zOiBsaW51eC9hbWQ2NCxsaW51eC9hcm02NA0KICAgICAgICAgIHB1c2g6IHRydWUNCiAgICAgICAgICB0YWdzOiB8DQogICAgICAgICAgICAke3sgZW52LkRPQ0tFUl9VU0VSIH19LyR7eyBlbnYuRE9DS0VSX05BTUUgfX06JHt7IHN0ZXBzLm5leHRfdmVyc2lvbi5vdXRwdXRzLm5ld190YWcgfX0NCiAgICAgICAgICAgICR7eyBlbnYuRE9DS0VSX1VTRVIgfX0vJHt7IGVudi5ET0NLRVJfTkFNRSB9fToke3sgc3RlcHMubmV4dF92ZXJzaW9uLm91dHB1dHMubmV3X3ZlcnNpb24gfX0NCiAgICAgICAgICAgICR7eyBlbnYuRE9DS0VSX1VTRVIgfX0vJHt7IGVudi5ET0NLRVJfTkFNRSB9fTpsYXRlc3QNCiAgICAgICAgICBsYWJlbHM6IHwNCiAgICAgICAgICAgIG9yZy5vcGVuY29udGFpbmVycy5pbWFnZS52ZXJzaW9uPSR7eyBzdGVwcy5uZXh0X3ZlcnNpb24ub3V0cHV0cy5uZXdfdmVyc2lvbiB9fQ0KICAgICAgICAgICAgb3JnLm9wZW5jb250YWluZXJzLmltYWdlLnJldmlzaW9uPSR7eyBnaXRodWIuc2hhIH19DQogICAgICAgICAgYnVpbGQtYXJnczogfA0KICAgICAgICAgICAgQlVJTERfVkVSU0lPTj0ke3sgc3RlcHMubmV4dF92ZXJzaW9uLm91dHB1dHMubmV3X3RhZyB9fQ0KICAgICAgICAgIGNhY2hlLWZyb206IHR5cGU9Z2hhDQogICAgICAgICAgY2FjaGUtdG86IHR5cGU9Z2hhLG1vZGU9bWF4DQo=
+name: Release to Docker Hub
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: '版本类型'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: '自定义版本号 (如 1.0.1)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  DOCKER_USER: ojbkxc
+  DOCKER_NAME: rustsync
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: 'recursive'
+
+      - name: Get current version
+        id: get_version
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          TAG_VERSION=${LATEST_TAG#v}
+
+          if [ -f VERSION ]; then
+            FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          else
+            FILE_VERSION="0.0.0"
+          fi
+
+          function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+
+          if version_gt "$FILE_VERSION" "$TAG_VERSION"; then
+            VERSION="$FILE_VERSION"
+          else
+            VERSION="$TAG_VERSION"
+          fi
+
+          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Calculate next version
+        id: next_version
+        env:
+          VERSION_TYPE: ${{ github.event.inputs.version_type }}
+          CUSTOM_VERSION: ${{ github.event.inputs.custom_version }}
+        run: |
+          if [ -n "$CUSTOM_VERSION" ]; then
+            NEW_VERSION="$CUSTOM_VERSION"
+          else
+            VERSION="${{ steps.get_version.outputs.current_version }}"
+            BASE_VERSION=$(echo "$VERSION" | sed 's/-.*$//')
+
+            IFS='.' read -r -a version_parts <<< "$BASE_VERSION"
+            MAJOR="${version_parts[0]:-0}"
+            MINOR="${version_parts[1]:-0}"
+            PATCH="${version_parts[2]:-0}"
+
+            case "$VERSION_TYPE" in
+              major)
+                NEW_VERSION="$((MAJOR + 1)).0.0"
+                ;;
+              minor)
+                NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+                ;;
+              *)
+                NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+                ;;
+            esac
+          fi
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update VERSION file
+        run: |
+          echo "${{ steps.next_version.outputs.new_version }}" > VERSION
+          echo "${{ steps.next_version.outputs.new_tag }},latest" > rustsync/version.txt
+
+      - name: Commit and create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add VERSION rustsync/version.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: bump version to ${{ steps.next_version.outputs.new_tag }} [skip ci]"
+          fi
+
+          NEW_TAG="${{ steps.next_version.outputs.new_tag }}"
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists, skipping tag creation"
+          else
+            git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+            git push origin HEAD:main "$NEW_TAG"
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./rustsync/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ steps.next_version.outputs.new_tag }}
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:${{ steps.next_version.outputs.new_version }}
+            ${{ env.DOCKER_USER }}/${{ env.DOCKER_NAME }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.next_version.outputs.new_version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            BUILD_VERSION=${{ steps.next_version.outputs.new_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
