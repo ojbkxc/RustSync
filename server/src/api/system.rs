@@ -24,7 +24,7 @@ pub async fn get_language() -> impl IntoResponse {
     Json(ApiResponse::ok(serde_json::json!({"language": i18n::get_current_lang(), "languages": i18n::get_supported_languages()})))
 }
 
-pub async fn set_language(Json(req): Json<LanguageRequest>) -> impl IntoResponse {
+pub async fn set_language(Json(req): Json<LanguageRequest>) -> Json<ApiResponse<serde_json::Value>> {
     i18n::set_current_lang(&req.language);
     Json(ApiResponse::ok_msg(serde_json::json!({}), "语言设置成功"))
 }
@@ -108,7 +108,7 @@ fn tail_file(path: &std::path::Path, max_lines: usize) -> std::io::Result<String
     Ok(all_lines.join("\n"))
 }
 
-pub async fn log_clear() -> impl IntoResponse {
+pub async fn log_clear() -> Json<ApiResponse<serde_json::Value>> {
     let log_dir = crate::config::get_config().log_dir;
     let log_path = std::path::Path::new(&log_dir).join("rustsync.log");
     match std::fs::write(&log_path, "") {

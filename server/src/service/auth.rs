@@ -81,7 +81,7 @@ pub async fn login(
 pub async fn reset_password(
     State(state): State<crate::state::SharedState>,
     Json(req): Json<ResetPasswordRequest>,
-) -> impl IntoResponse {
+) -> Json<ApiResponse<serde_json::Value>> {
     let conn = state.db.get().unwrap();
     let user = conn.query_row(
         "SELECT id, userName FROM user_list WHERE userName=?",
@@ -109,7 +109,7 @@ pub async fn reset_password(
     }
 }
 
-pub async fn logout() -> impl IntoResponse {
+pub async fn logout() -> axum::response::Response {
     let cookie = "rust_sync=; Path=/; HttpOnly; Max-Age=0";
     (StatusCode::OK, [(header::SET_COOKIE, cookie)], Json(ApiResponse::ok_msg(json!({}), "已登出"))).into_response()
 }
@@ -134,7 +134,7 @@ pub async fn change_password(
     State(state): State<crate::state::SharedState>,
     claims: Claims,
     Json(req): Json<ChangePasswordRequest>,
-) -> impl IntoResponse {
+) -> Json<ApiResponse<serde_json::Value>> {
     let conn = state.db.get().unwrap();
     let valid: bool = conn
         .query_row("SELECT passwd FROM user_list WHERE id=?", [claims.sub], |row| row.get::<_, String>(0))
