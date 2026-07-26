@@ -148,8 +148,8 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let enable = if is_cron == 2 && !body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) { true } else { body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) };
-    let fields = extract_job_fields(&body);
     let execute_result = {
+        let fields = extract_job_fields(&body);
         let conn = state.db.get().unwrap();
         let result = conn.execute(
             "INSERT INTO job (enable, remark, srcPath, dstPath, alistId, useCacheT, scanIntervalT, useCacheS, scanIntervalS, method, sourceMode, interval, isCron, year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, exclude, minFileSize, maxFileSize) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -186,16 +186,16 @@ pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id)
     };
     if old_enable == 1 && old_is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }
     let new_alist_id = body.get("alistId").and_then(|v| v.as_i64());
-    let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("");
-    let new_dst_path = body.get("dstPath").and_then(|v| v.as_str()).unwrap_or("");
+    let new_src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let new_dst_path = body.get("dstPath").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let new_method = body.get("method").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let new_exclude = body.get("exclude").and_then(|v| v.as_str()).map(|s| s.to_string());
     let new_min_fs = body.get("minFileSize").and_then(|v| v.as_i64());
     let new_max_fs = body.get("maxFileSize").and_then(|v| v.as_i64());
     let clear_snapshot = old_alist_id != new_alist_id || old_src_path != new_src_path || old_dst_path != new_dst_path || old_method != new_method || old_exclude != new_exclude || old_min_fs != new_min_fs || old_max_fs != new_max_fs;
     crate::service::scheduler::get_scheduler().stop_job(job_id).await;
-    let fields = extract_job_fields(&body);
     let execute_result = {
+        let fields = extract_job_fields(&body);
         let conn = state.db.get().unwrap();
         let result = conn.execute(
             "UPDATE job SET enable=?, remark=?, srcPath=?, dstPath=?, alistId=?, useCacheT=?, scanIntervalT=?, useCacheS=?, scanIntervalS=?, method=?, sourceMode=?, interval=?, isCron=?, year=?, month=?, day=?, week=?, day_of_week=?, hour=?, minute=?, second=?, start_date=?, end_date=?, exclude=?, minFileSize=?, maxFileSize=? WHERE id=?",
