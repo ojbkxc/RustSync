@@ -27,8 +27,6 @@ jobs:
   build-frontend:
     name: 构建前端
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +41,8 @@ jobs:
 
       - name: 构建前端
         working-directory: rustsync/web
+        env:
+          VERSION: ${{ env.PRE_VERSION }}
         run: |
           sed -i "s/__version_placeholder__/$VERSION/g" src/locales/zh-CN.yaml
           sed -i "s/__version_placeholder__/$VERSION/g" src/locales/en.yaml
@@ -64,8 +64,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -158,8 +156,8 @@ jobs:
             echo "::error::未找到 APK 产物"
             exit 1
           fi
-          cp "$apk_path" "dist/${APP_NAME}-app-${VERSION}.apk"
-          echo "APK: dist/${APP_NAME}-app-${VERSION}.apk"
+          cp "$apk_path" "dist/${APP_NAME}-app-${{ env.PRE_VERSION }}.apk"
+          echo "APK: dist/${APP_NAME}-app-${{ env.PRE_VERSION }}.apk"
 
       - name: 上传 APK artifact
         uses: actions/upload-artifact@v4
@@ -177,8 +175,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -230,13 +226,13 @@ jobs:
           mkdir -p "$MAGISK_TMP/static"
           cp -r server/static/* "$MAGISK_TMP/static/"
 
-          sed -i "s/^version=.*/version=${VERSION}/" "$MAGISK_TMP/module.prop"
-          VERSION_CODE=$(echo "$VERSION" | tr -d '.')
+          sed -i "s/^version=.*/version=${{ env.PRE_VERSION }}/" "$MAGISK_TMP/module.prop"
+          VERSION_CODE=$(echo "${{ env.PRE_VERSION }}" | tr -d '.')
           sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$MAGISK_TMP/module.prop"
 
-          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-${VERSION}.zip" .)
+          (cd "$MAGISK_TMP" && mkdir -p "$GITHUB_WORKSPACE/dist" && zip -qr "$GITHUB_WORKSPACE/dist/${APP_NAME}-${{ env.PRE_VERSION }}.zip" .)
           rm -rf "$MAGISK_TMP"
-          echo "Magisk: dist/${APP_NAME}-${VERSION}.zip"
+          echo "Magisk: dist/${APP_NAME}-${{ env.PRE_VERSION }}.zip"
 
       - name: 上传 Magisk artifact
         uses: actions/upload-artifact@v4
@@ -254,8 +250,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend]
     continue-on-error: true
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     strategy:
       matrix:
         include:
@@ -306,14 +300,14 @@ jobs:
           mkdir -p dist
           cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
           cd dist
-          tar czf "../${APP_NAME}-${VERSION}-linux-${{ matrix.arch }}.tar.gz" rustsync-server
+          tar czf "../${APP_NAME}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}.tar.gz" rustsync-server
           cd ..
 
       - name: 上传 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-linux-${{ matrix.arch }}.tar.gz
+          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-linux-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   # ============================================================
@@ -324,8 +318,6 @@ jobs:
     runs-on: windows-latest
     needs: [build-frontend]
     continue-on-error: true
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -357,13 +349,13 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe dist/rustsync-server.exe
-          Compress-Archive -Path dist/rustsync-server.exe -DestinationPath "$env:APP_NAME-$env:VERSION-windows-amd64.zip"
+          Compress-Archive -Path dist/rustsync-server.exe -DestinationPath "$env:APP_NAME-${{ env.PRE_VERSION }}-windows-amd64.zip"
 
       - name: 上传 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-amd64
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-windows-amd64.zip
+          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-windows-amd64.zip
           retention-days: 1
 
   # ============================================================
@@ -375,8 +367,6 @@ jobs:
     needs: [build-frontend]
     continue-on-error: true
     timeout-minutes: 30
-    env:
-      VERSION: ${{ env.PRE_VERSION }}
     strategy:
       matrix:
         include:
@@ -416,14 +406,14 @@ jobs:
           mkdir -p dist
           cp server/target/${{ matrix.target }}/release/rustsync-server dist/rustsync-server
           cd dist
-          tar czf "../${APP_NAME}-${VERSION}-darwin-${{ matrix.arch }}.tar.gz" rustsync-server
+          tar czf "../${APP_NAME}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}.tar.gz" rustsync-server
           cd ..
 
       - name: 上传 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-darwin-${{ matrix.arch }}
-          path: ${{ env.APP_NAME }}-${{ env.VERSION }}-darwin-${{ matrix.arch }}.tar.gz
+          path: ${{ env.APP_NAME }}-${{ env.PRE_VERSION }}-darwin-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   # ============================================================
@@ -477,9 +467,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, build-docker]
     if: (!cancelled())
-    env:
-      TAG: ${{ env.PRE_TAG }}
-      VERSION: ${{ env.PRE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -516,20 +503,20 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # 删除远程已有 tag
-          git push origin :refs/tags/${TAG} 2>/dev/null || true
+          git push origin :refs/tags/${{ env.PRE_TAG }} 2>/dev/null || true
 
           # 强制创建新 tag
-          git tag -f ${TAG} -m "Pre-release ${TAG}"
-          git push origin ${TAG}
+          git tag -f ${{ env.PRE_TAG }} -m "Pre-release ${{ env.PRE_TAG }}"
+          git push origin ${{ env.PRE_TAG }}
 
       - name: 创建 / 更新 Pre-release
         if: steps.collect.outputs.files != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
-          name: RustSync ${{ env.TAG }} (Pre-release)
+          tag_name: ${{ env.PRE_TAG }}
+          name: RustSync ${{ env.PRE_TAG }} (Pre-release)
           body: |
-            ## RustSync ${{ env.VERSION }} Pre-release
+            ## RustSync ${{ env.PRE_VERSION }} Pre-release
 
             自动构建的预发布版本，每次推送 main 分支时自动更新。
 
