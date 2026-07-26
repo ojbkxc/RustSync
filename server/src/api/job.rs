@@ -144,7 +144,12 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 
 /// POST /api/jobs
 pub async fn create_job(State(state): State<crate::state::SharedState>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
+<<<<<<< HEAD
     let body = match validate_and_normalize_job(body.0) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
+=======
+    let mut body = body;
+    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
+>>>>>>> 23614348b8ac418932b97c5cf885da82d3efcb88
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let conn = state.db.get().unwrap();
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -162,7 +167,11 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
 pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
     let mut body = body.0;
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
+<<<<<<< HEAD
     let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
+=======
+    if let Err(e) = validate_and_normalize_job(&mut body) { return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
+>>>>>>> 23614348b8ac418932b97c5cf885da82d3efcb88
     let job_id = id;
     let conn = state.db.get().unwrap();
     let (old_enable, old_is_cron, old_alist_id, old_src_path, old_dst_path, old_method, old_exclude, old_min_fs, old_max_fs): (i32, i32, Option<i64>, String, String, i32, Option<String>, Option<i64>, Option<i64>) = conn.query_row(
