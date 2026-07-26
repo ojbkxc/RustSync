@@ -399,6 +399,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     needs: [get-version, build-frontend]
     continue-on-error: true  # macOS runner 可能不可用，不阻塞发版
+    timeout-minutes: 30  # runner 排队超时则取消，避免卡死整个流程
     env:
       VERSION: ${{ needs.get-version.outputs.version }}
     strategy:
