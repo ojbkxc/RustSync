@@ -168,6 +168,16 @@ impl Scheduler {
 
 /// 初始化所有启用的作业
 pub async fn init_all_jobs(state: &crate::state::SharedState) -> anyhow::Result<()> {
+    // 重启后，将运行中/等待中的任务标记为中止
+    {
+        let db = state.db.get().unwrap();
+        let _ = db.execute("UPDATE job_task SET status=4 WHERE status IN (0, 1)", []);
+        let _ = db.execute("UPDATE job_task_item SET status=4 WHERE status IN (0, 1)", []);
+    }
+
+    // 启动日志和任务历史清理
+    start_cleanup_scheduler(state);
+
     let jobs: Vec<Job> = {
         let db = state.db.get().unwrap();
         let mut stmt = db.prepare(
@@ -226,4 +236,92 @@ static SCHEDULER: OnceLock<SharedScheduler> = OnceLock::new();
 
 pub fn get_scheduler() -> SharedScheduler {
     SCHEDULER.get_or_init(|| Scheduler::new()).clone()
+}
+
+// ==================== 日志和任务历史清理 ====================
+
+/// 启动日志和任务历史清理调度器
+fn start_cleanup_scheduler(state: &crate::state::SharedState) {
+    let log_save = state.config.log_save;
+    let task_save = state.config.task_save;
+
+    if log_save == 0 && task_save == 0 {
+        return;
+    }
+
+    let state = state.clone();
+    tokio::spawn(async move {
+        // 立即执行一次清理
+        run_cleanup(&state, log_save, task_save);
+
+        // 每天午夜执行清理
+        loop {
+            let delay = seconds_until_midnight();
+            tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+            run_cleanup(&state, log_save, task_save);
+        }
+    });
+}
+
+fn run_cleanup(state: &crate::state::SharedState, log_save: u32, task_save: u32) {
+    if log_save > 0 {
+        cleanup_old_logs(state, log_save);
+    }
+    if task_save > 0 {
+        cleanup_old_tasks(state, task_save);
+    }
+}
+
+fn cleanup_old_logs(state: &crate::state::SharedState, log_save: u32) {
+    let log_dir = std::path::Path::new(&state.config.log_dir);
+    if !log_dir.exists() {
+        return;
+    }
+
+    let cutoff = chrono::Utc::now().timestamp() - (log_save as i64 * 86400);
+
+    if let Ok(entries) = std::fs::read_dir(log_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.ends_with(".log") {
+                continue;
+            }
+            // 检查文件修改时间
+            if let Ok(meta) = entry.metadata() {
+                if let Ok(modified) = meta.modified() {
+                    if let Ok(dur) = modified.duration_since(std::time::UNIX_EPOCH) {
+                        if dur.as_secs() as i64 < cutoff {
+                            let _ = std::fs::remove_file(&path);
+                            tracing::info!("已清理过期日志: {}", name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn cleanup_old_tasks(state: &crate::state::SharedState, task_save: u32) {
+    let cutoff = crate::service::db::now_ts() - (task_save as i64 * 86400);
+    let db = state.db.get().unwrap();
+    let _ = db.execute(
+        "DELETE FROM job_task_item WHERE taskId IN (SELECT id FROM job_task WHERE runTime < ?)",
+        [cutoff],
+    );
+    let deleted = db.execute("DELETE FROM job_task WHERE runTime < ?", [cutoff]).unwrap_or(0);
+    if deleted > 0 {
+        tracing::info!("已清理 {} 条过期任务记录", deleted);
+    }
+}
+
+fn seconds_until_midnight() -> u64 {
+    let now = chrono::Local::now();
+    let midnight = (now + chrono::Duration::days(1))
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .and_then(|naive| naive.and_local_timezone(chrono::Local).single())
+        .unwrap_or(now + chrono::Duration::hours(1));
+    let dur = midnight - now;
+    dur.num_seconds().max(60) as u64
 }
