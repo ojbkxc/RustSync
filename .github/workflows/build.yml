@@ -24,7 +24,6 @@ jobs:
   get-version:
     name: 获取版本号
     runs-on: ubuntu-latest
-    if: github.ref != 'refs/tags/v1.1.0'  # v1.1.0 由 pre-release workflow 处理
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -465,7 +464,7 @@ jobs:
     name: 发布 Release
     runs-on: ubuntu-latest
     needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos]
-    if: (!cancelled()) && github.ref != 'refs/tags/v1.1.0'  # 即使部分平台构建失败也继续发版；v1.1.0 由 pre-release workflow 处理
+    if: (!cancelled())  # 即使部分平台构建失败也继续发版
     env:
       TAG: ${{ needs.get-version.outputs.tag }}
       VERSION: ${{ needs.get-version.outputs.version }}
