@@ -1,6 +1,7 @@
 name: Pre-release v1.1.0
 
 # Auto-build pre-release on every push to main
+# Trigger CI for current code verification
 
 on:
   push:
