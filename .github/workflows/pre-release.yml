@@ -1,4 +1,4 @@
-name: Pre-release v1.1.0
+name: Pre-release
 
 # Auto-build pre-release on every push to main
 # Trigger CI for current code verification v3 (fix Android APK build)
