@@ -113,9 +113,16 @@ jobs:
 
       - name: Package APK
         run: |
+          echo "=== Searching for APK ==="
+          find rustsync/bin -type f -name '*.apk' 2>/dev/null || echo "No APK found in rustsync/bin"
+          find . -type f -name '*.apk' 2>/dev/null || echo "No APK found anywhere"
           mkdir -p dist
-          apk_path=$(find rustsync/bin -maxdepth 1 -name '*.apk' -print -quit)
+          apk_path=$(find rustsync/bin -type f -name '*.apk' -print -quit)
+          if [ -z "$apk_path" ]; then
+            apk_path=$(find . -type f -name '*.apk' -print -quit)
+          fi
           if [ -z "$apk_path" ]; then echo "::error::APK not found"; exit 1; fi
+          echo "Found APK: $apk_path"
           cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}.apk"
 
       - name: Upload APK Artifact
