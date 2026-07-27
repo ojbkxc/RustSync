@@ -1,5 +1,6 @@
 [app]
 
+# Android APK build configuration for RustSync
 title = RustSync
 package.name = rustsync
 package.domain = com.github
