@@ -546,12 +546,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          # 删除已存在的 release（保留 tag 由 push 创建）
+          # 如果 release 已存在则删除重建
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-          sleep 3
-          # 重建 tag 指向当前 commit
-          git tag -f "$TAG" -m "Release $TAG"
-          git push origin "$TAG" --force
+          sleep 2
           # 创建 release notes
           cat > /tmp/release_notes.md << 'RNEOF'
           ## RustSync ${{ needs.get-version.outputs.version }}
@@ -579,8 +576,9 @@ jobs:
           - 端口: `8023`
           - 密码: `admin`
           RNEOF
-          # 创建 release 并上传所有文件
+          # 创建 release（gh 会自动创建 tag 指向当前 commit）
           gh release create "$TAG" \
             --title "RustSync $TAG" \
             --notes-file /tmp/release_notes.md \
+            --target "$GITHUB_SHA" \
             $(echo "${{ steps.collect.outputs.files }}" | tr '\n' ' ')

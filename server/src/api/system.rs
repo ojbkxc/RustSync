@@ -62,7 +62,7 @@ pub async fn log_list() -> Json<ApiResponse<serde_json::Value>> {
         }
     }
     logs.sort_by(|a, b| b["modified"].as_u64().cmp(&a["modified"].as_u64()));
-    Json(ApiResponse::ok(logs))
+    Json(ApiResponse::ok(serde_json::Value::Array(logs)))
 }
 
 pub async fn log_read(Query(q): Query<LogQuery>) -> Json<ApiResponse<serde_json::Value>> {
