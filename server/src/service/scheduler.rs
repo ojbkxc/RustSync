@@ -317,11 +317,11 @@ fn cleanup_old_tasks(state: &crate::state::SharedState, task_save: u32) {
 
 fn seconds_until_midnight() -> u64 {
     let now = chrono::Local::now();
-    let midnight = (now + chrono::Duration::days(1))
-        .date_naive()
+    let tomorrow = (now + chrono::TimeDelta::days(1)).naive_local().date();
+    let midnight = tomorrow
         .and_hms_opt(0, 0, 0)
         .and_then(|naive| naive.and_local_timezone(chrono::Local).single())
-        .unwrap_or(now + chrono::Duration::hours(1));
+        .unwrap_or_else(|| now + chrono::TimeDelta::hours(1));
     let dur = midnight - now;
     dur.num_seconds().max(60) as u64
 }
