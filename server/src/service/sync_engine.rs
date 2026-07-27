@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use crate::driver::base::{FileEntry, SyncOperation};
 
+/// 全局中止标志
 static ABORT_FLAGS: Mutex<Option<HashSet<i64>>> = Mutex::new(None);
 
 pub fn set_abort_flag(job_id: i64) {
