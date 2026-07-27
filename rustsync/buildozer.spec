@@ -10,7 +10,7 @@ source.include_patterns = front/**,locales/**,bin/**,doc/config.ini
 
 version = 0.4.0
 
-requirements = python3,pyjnius,android,tornado,setuptools
+requirements = python3,pyjnius,android,tornado
 
 orientation = portrait
 fullscreen = 0
