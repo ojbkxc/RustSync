@@ -75,8 +75,8 @@ jobs:
         run: |
           curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz -o /tmp/cargo-ndk.tgz
           tar xzf /tmp/cargo-ndk.tgz -C /tmp
-          sudo cp /tmp/cargo-ndk-*/cargo-ndk /usr/local/bin/
-          sudo chmod +x /usr/local/bin/cargo-ndk
+          sudo cp /tmp/cargo-ndk-*/cargo-ndk /tmp/cargo-ndk-*/cargo-ndk-runner /tmp/cargo-ndk-*/cargo-ndk-env /tmp/cargo-ndk-*/cargo-ndk-test /usr/local/bin/
+          sudo chmod +x /usr/local/bin/cargo-ndk /usr/local/bin/cargo-ndk-runner /usr/local/bin/cargo-ndk-env /usr/local/bin/cargo-ndk-test
           rustup target add aarch64-linux-android
       - name: Copy Frontend to Rust static
         run: |
@@ -162,8 +162,8 @@ jobs:
         run: |
           curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz -o /tmp/cargo-ndk.tgz
           tar xzf /tmp/cargo-ndk.tgz -C /tmp
-          sudo cp /tmp/cargo-ndk-*/cargo-ndk /usr/local/bin/
-          sudo chmod +x /usr/local/bin/cargo-ndk
+          sudo cp /tmp/cargo-ndk-*/cargo-ndk /tmp/cargo-ndk-*/cargo-ndk-runner /tmp/cargo-ndk-*/cargo-ndk-env /tmp/cargo-ndk-*/cargo-ndk-test /usr/local/bin/
+          sudo chmod +x /usr/local/bin/cargo-ndk /usr/local/bin/cargo-ndk-runner /usr/local/bin/cargo-ndk-env /usr/local/bin/cargo-ndk-test
           rustup target add aarch64-linux-android
       - name: Build Rust (arm64-v8a)
         working-directory: server
