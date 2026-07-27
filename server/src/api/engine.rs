@@ -102,7 +102,8 @@ pub async fn list_engines(State(state): State<crate::state::SharedState>) -> Jso
 }
 
 /// POST /api/engines
-pub async fn add_engine(State(state): State<crate::state::SharedState>, Json(mut req): Json<EngineRequest>) -> Json<ApiResponse<serde_json::Value>> {
+pub async fn add_engine(State(state): State<crate::state::SharedState>, Json(req): Json<EngineRequest>) -> Json<ApiResponse<serde_json::Value>> {
+    let mut req = req;
     if req.url.ends_with('/') { req.url = req.url.trim_end_matches('/').to_string(); }
     if req.remark.as_deref().map_or(false, |s| s.trim().is_empty()) { req.remark = None; }
     let is_rustsync = req.engine_type == "rustsync";
