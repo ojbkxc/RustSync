@@ -381,8 +381,8 @@ fn sync_with_snapshot(
     src_entries: &[FileEntry],
     method: i32,
     compiled_patterns: &[glob::Pattern],
-    min_size: Option<i64>,
-    max_size: Option<i64>,
+    _min_size: Option<i64>,
+    _max_size: Option<i64>,
 ) -> anyhow::Result<Vec<SyncOperation>> {
     let db = state.db.get().unwrap();
     let previous_snapshot = get_source_snapshot(&db, job_id);
@@ -405,8 +405,8 @@ fn sync_with_snapshot(
 
 /// 实时对比模式：扫描目标目录并逐文件对比
 fn sync_live_compare(
-    state: &crate::state::SharedState,
-    src_path: &str,
+    _state: &crate::state::SharedState,
+    _src_path: &str,
     dst_path_str: &str,
     src_entries: &[FileEntry],
     compiled_patterns: &[glob::Pattern],
@@ -737,7 +737,7 @@ fn path_within(path: &str, prefix: &str) -> bool {
 async fn send_task_notification(
     state: &crate::state::SharedState,
     job_id: i64,
-    task_id: i64,
+    _task_id: i64,
     total: usize,
     success: usize,
     failed: usize,
@@ -789,19 +789,18 @@ async fn send_task_notification(
 
     let need_not_sync = failed == 0 && total == 0;
 
-    for (method, params) in &notify_list {
+    for (method, params) in notify_list {
         if need_not_sync {
-            if let Ok(params_json) = serde_json::from_str::<serde_json::Value>(params) {
+            if let Ok(params_json) = serde_json::from_str::<serde_json::Value>(&params) {
                 if params_json.get("notSendNull").and_then(|v| v.as_bool()).unwrap_or(false) {
                     continue;
                 }
             }
         }
-        let params_clone = params.clone();
         let title_clone = title.clone();
         let content_clone = content.clone();
         tokio::spawn(async move {
-            if let Err(e) = crate::api::notify::send_notification(*method, &params_clone, &title_clone, &content_clone).await {
+            if let Err(e) = crate::api::notify::send_notification(method, &params, &title_clone, &content_clone).await {
                 tracing::error!("发送通知失败 (method={}, job={}): {}", method, job_id, e);
             }
         });
@@ -926,7 +925,7 @@ async fn execute_operation(
 ) -> anyhow::Result<()> {
     use std::path::Path;
     match op {
-        SyncOperation::Copy { src, dst, size: _ } => {
+        SyncOperation::Copy { src, dst: _, size: _ } => {
             execute_copy(src, src_root, dst_root).await
         }
         SyncOperation::Delete { path, is_dir } => {
