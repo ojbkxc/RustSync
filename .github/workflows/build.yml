@@ -500,33 +500,43 @@ jobs:
 
       - name: 创建 Release
         if: steps.collect.outputs.files != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.get-version.outputs.tag }}
-          name: RustSync ${{ needs.get-version.outputs.tag }}
-          body: |
-            ## RustSync ${{ needs.get-version.outputs.version }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # 删除已存在的 release（保留 tag 由 push 创建）
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          sleep 3
+          # 重建 tag 指向当前 commit
+          git tag -f "$TAG" -m "Release $TAG"
+          git push origin "$TAG" --force
+          # 创建 release notes
+          cat > /tmp/release_notes.md << 'RNEOF'
+          ## RustSync ${{ needs.get-version.outputs.version }}
 
-            Rust 重写版多平台同步服务。
+          Rust 重写版多平台同步服务。
 
-            ### 产物
-            - **APK**: `RustSync-app-${{ needs.get-version.outputs.version }}.apk`
-            - **Magisk**: `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` (通过 Magisk 刷入)
-            - **Linux**: `RustSync-${{ needs.get-version.outputs.version }}-linux-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-linux-arm64.tar.gz`
-            - **Windows**: `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip`
-            - **macOS**: `RustSync-${{ needs.get-version.outputs.version }}-darwin-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-darwin-arm64.tar.gz`
-            - **Docker**: `docker-compose.yml`
+          ### 产物
+          - **APK**: `RustSync-app-${{ needs.get-version.outputs.version }}.apk`
+          - **Magisk**: `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` (通过 Magisk 刷入)
+          - **Linux**: `RustSync-${{ needs.get-version.outputs.version }}-linux-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-linux-arm64.tar.gz`
+          - **Windows**: `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip`
+          - **macOS**: `RustSync-${{ needs.get-version.outputs.version }}-darwin-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-darwin-arm64.tar.gz`
+          - **Docker**: `docker-compose.yml`
 
-            ### 使用
-            - **APK**: 安装后打开 App，WebView 自动加载管理面板
-            - **Magisk**: 下载 `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` 通过 Magisk 刷入
-            - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
-            - **Windows**: 解压后运行 `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
-            - **Docker**: `docker-compose up -d`
+          ### 使用
+          - **APK**: 安装后打开 App，WebView 自动加载管理面板
+          - **Magisk**: 下载 `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` 通过 Magisk 刷入
+          - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
+          - **Windows**: 解压后运行 `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
+          - **Docker**: `docker-compose up -d`
 
-            ### 默认
-            - 端口: `8023`
-            - 密码: `admin`
-          files: ${{ steps.collect.outputs.files }}
-          draft: false
-          prerelease: false
+          ### 默认
+          - 端口: `8023`
+          - 密码: `admin`
+          RNEOF
+          # 创建 release 并上传所有文件
+          gh release create "$TAG" \
+            --title "RustSync $TAG" \
+            --notes-file /tmp/release_notes.md \
+            $(echo "${{ steps.collect.outputs.files }}" | tr '\n' ' ')
