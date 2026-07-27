@@ -100,8 +100,8 @@ jobs:
           targets: aarch64-linux-android
       - name: Install cargo-ndk
         run: |
-          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v3.6.0/cargo-ndk-x86_64-unknown-linux-gnu.tar.gz -o /tmp/cargo-ndk.tar.gz
-          tar xzf /tmp/cargo-ndk.tar.gz -C /tmp
+          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz -o /tmp/cargo-ndk.tgz
+          tar xzf /tmp/cargo-ndk.tgz -C /tmp
           sudo cp /tmp/cargo-ndk /usr/local/bin/
           sudo chmod +x /usr/local/bin/cargo-ndk
           rustup target add aarch64-linux-android
@@ -191,8 +191,8 @@ jobs:
           targets: aarch64-linux-android
       - name: Install cargo-ndk
         run: |
-          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v3.6.0/cargo-ndk-x86_64-unknown-linux-gnu.tar.gz -o /tmp/cargo-ndk.tar.gz
-          tar xzf /tmp/cargo-ndk.tar.gz -C /tmp
+          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz -o /tmp/cargo-ndk.tgz
+          tar xzf /tmp/cargo-ndk.tgz -C /tmp
           sudo cp /tmp/cargo-ndk /usr/local/bin/
           sudo chmod +x /usr/local/bin/cargo-ndk
           rustup target add aarch64-linux-android
