@@ -1,7 +1,7 @@
 name: Android APK Build
 
 # Auto-build Android APK on push to main
-# Fix: use ubuntu-latest, consistent with pre-release workflow
+# Standalone APK build workflow
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build-android-apk:
-    name: Build Android APK
+    name: Build Android APK (arm64-v8a)
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
@@ -134,12 +134,12 @@ jobs:
           fi
           if [ -z "$apk_path" ]; then echo "::error::APK not found"; exit 1; fi
           echo "Found APK: $apk_path"
-          cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}.apk"
+          cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}-android-arm64-v8a.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-apk
-          path: dist/*.apk
+          path: dist/RustSync-app-*-android-arm64-v8a.apk
           if-no-files-found: error
           retention-days: 7

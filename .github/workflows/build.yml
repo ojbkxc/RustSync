@@ -24,6 +24,7 @@ jobs:
   get-version:
     name: 获取版本号
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/tags/v1.1.0'  # v1.1.0 由 pre-release workflow 处理
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -85,7 +86,7 @@ jobs:
   # Android APK (arm64-v8a)
   # ============================================================
   build-android-apk:
-    name: 构建 Android APK
+    name: 构建 Android APK (arm64-v8a)
     runs-on: ubuntu-latest
     needs: [get-version, build-frontend]
     continue-on-error: true
@@ -131,7 +132,6 @@ jobs:
           mkdir -p ../rustsync/bin/arm64-v8a
           cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
           echo "arm64-v8a built"
-
 
       - name: 验证 Rust 二进制
         run: |
@@ -184,14 +184,14 @@ jobs:
             echo "::error::未找到 APK 产物"
             exit 1
           fi
-          cp "$apk_path" "dist/${APP_NAME}-app-${VERSION}.apk"
-          echo "APK: dist/${APP_NAME}-app-${VERSION}.apk"
+          cp "$apk_path" "dist/${APP_NAME}-app-${VERSION}-android-arm64-v8a.apk"
+          echo "APK: dist/${APP_NAME}-app-${VERSION}-android-arm64-v8a.apk"
 
       - name: 上传 APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-apk
-          path: dist/*.apk
+          path: dist/RustSync-app-*-android-arm64-v8a.apk
           if-no-files-found: error
           retention-days: 1
 
@@ -335,7 +335,7 @@ jobs:
           bin_name="${APP_NAME}-${VERSION}-linux-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
-          tar czf "../${bin_name}.tar.gz" "${bin_name}"
+          tar czf "${bin_name}.tar.gz" "${bin_name}"
           cd ..
 
       - name: 上传 artifact
@@ -346,10 +346,10 @@ jobs:
           retention-days: 1
 
   # ============================================================
-  # Windows 独立二进制 (amd64)
+  # Windows 独立二进制 (amd64, .exe 原生格式)
   # ============================================================
   build-windows:
-    name: 构建 Windows
+    name: 构建 Windows (amd64)
     runs-on: windows-latest
     needs: [get-version, build-frontend]
     continue-on-error: true
@@ -381,19 +381,17 @@ jobs:
         working-directory: server
         run: cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: 打包
+      - name: 打包 (.exe 原生格式)
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
-          $exeName = "$env:APP_NAME-$env:VERSION-windows-amd64.exe"
-          Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe "dist/$exeName"
-          Compress-Archive -Path "dist/$exeName" -DestinationPath "$env:APP_NAME-$env:VERSION-windows-amd64.zip"
+          Copy-Item server/target/x86_64-pc-windows-msvc/release/rustsync-server.exe "dist/$env:APP_NAME-$env:VERSION-windows-amd64.exe"
 
       - name: 上传 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-amd64
-          path: RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip
+          path: dist/RustSync-*-windows-amd64.exe
           retention-days: 1
 
   # ============================================================
@@ -447,7 +445,7 @@ jobs:
           bin_name="${APP_NAME}-${VERSION}-darwin-${{ matrix.arch }}"
           cp server/target/${{ matrix.target }}/release/rustsync-server "dist/${bin_name}"
           cd dist
-          tar czf "../${bin_name}.tar.gz" "${bin_name}"
+          tar czf "${bin_name}.tar.gz" "${bin_name}"
           cd ..
 
       - name: 上传 artifact
@@ -458,13 +456,58 @@ jobs:
           retention-days: 1
 
   # ============================================================
+  # Docker 镜像 (amd64 + arm64, 对齐预览版)
+  # ============================================================
+  build-docker:
+    name: 构建并推送 Docker 镜像
+    runs-on: ubuntu-latest
+    needs: [get-version]
+    continue-on-error: true
+    env:
+      DOCKER_USER: ojbkxc
+      DOCKER_NAME: rustsync
+      VERSION: ${{ needs.get-version.outputs.version }}
+      TAG: ${{ needs.get-version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./rustsync/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ojbkxc/rustsync:${{ needs.get-version.outputs.tag }}
+            ojbkxc/rustsync:${{ needs.get-version.outputs.version }}
+            ojbkxc/rustsync:latest
+          labels: |
+            org.opencontainers.image.version=${{ needs.get-version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            BUILD_VERSION=${{ needs.get-version.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
   # 创建 GitHub Release
   # ============================================================
   create-release:
     name: 发布 Release
     runs-on: ubuntu-latest
-    needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos]
-    if: (!cancelled())  # 即使部分平台构建失败也继续发版
+    needs: [get-version, build-android-apk, build-android-magisk, build-linux, build-windows, build-macos, build-docker]
+    if: (!cancelled()) && github.ref != 'refs/tags/v1.1.0'  # 即使部分平台构建失败也继续发版；v1.1.0 由 pre-release workflow 处理
     env:
       TAG: ${{ needs.get-version.outputs.tag }}
       VERSION: ${{ needs.get-version.outputs.version }}
@@ -493,7 +536,7 @@ jobs:
           cp docker-compose.yml dist/docker-compose.yml
           {
             echo "files<<EOF"
-            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" -o -name "docker-compose.yml" \) 2>/dev/null || true
+            find dist -type f \( -name "*.apk" -o -name "*.zip" -o -name "*.tar.gz" -o -name "*.exe" -o -name "docker-compose.yml" \) 2>/dev/null || true
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -516,18 +559,20 @@ jobs:
           Rust 重写版多平台同步服务。
 
           ### 产物
-          - **APK**: `RustSync-app-${{ needs.get-version.outputs.version }}.apk`
+          - **APK**: `RustSync-app-${{ needs.get-version.outputs.version }}-android-arm64-v8a.apk`
           - **Magisk**: `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` (通过 Magisk 刷入)
           - **Linux**: `RustSync-${{ needs.get-version.outputs.version }}-linux-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-linux-arm64.tar.gz`
-          - **Windows**: `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.zip`
+          - **Windows**: `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
           - **macOS**: `RustSync-${{ needs.get-version.outputs.version }}-darwin-amd64.tar.gz` / `RustSync-${{ needs.get-version.outputs.version }}-darwin-arm64.tar.gz`
-          - **Docker**: `docker-compose.yml`
+          - **Docker**: `ojbkxc/rustsync:${{ needs.get-version.outputs.tag }}` / `ojbkxc/rustsync:latest`
+          - **docker-compose.yml**
 
           ### 使用
           - **APK**: 安装后打开 App，WebView 自动加载管理面板
           - **Magisk**: 下载 `RustSync-Magisk-${{ needs.get-version.outputs.version }}.zip` 通过 Magisk 刷入
-          - **Linux/macOS**: `tar xzf` 解压后运行 `./RustSync-*`
-          - **Windows**: 解压后运行 `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
+          - **Linux**: `tar xzf` 解压后运行 `./RustSync-*`
+          - **macOS**: `tar xzf` 解压后运行 `./RustSync-*`
+          - **Windows**: 直接运行 `RustSync-${{ needs.get-version.outputs.version }}-windows-amd64.exe`
           - **Docker**: `docker-compose up -d`
 
           ### 默认
