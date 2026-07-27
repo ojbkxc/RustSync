@@ -1,5 +1,8 @@
 name: Android APK Build
 
+# Auto-build Android APK on push to main
+# Fix: use ubuntu-22.04, add setuptools/wheel, set JAVA_HOME/ANDROID_HOME env vars
+
 on:
   push:
     branches:
