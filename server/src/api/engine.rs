@@ -177,20 +177,89 @@ pub async fn delete_engine(State(state): State<crate::state::SharedState>, Path(
 
 /// GET /api/engines/:id/browse
 pub async fn browse_engine(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Query(params): Query<std::collections::HashMap<String, String>>) -> Json<ApiResponse<serde_json::Value>> {
-    let conn = state.db.get().unwrap();
     let path = params.get("path").cloned().unwrap_or_default();
-    let engine = match conn.query_row(
-        "SELECT id, remark, url, userName, token, engineType, systemKey, protected, createTime FROM alist_list WHERE id=?",
-        [id], |row| Ok(Engine { id: row.get(0)?, remark: row.get(1)?, url: row.get(2)?, user_name: row.get(3)?, token: row.get(4)?, engine_type: row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "alist".to_string()), system_key: row.get(6)?, protected: row.get::<_, Option<bool>>(7)?.unwrap_or(false), create_time: row.get(8)? }),
-    ) { Ok(e) => e, Err(_) => return Json(ApiResponse::not_found("引擎不存在")) };
-    let mut stmt = match conn.prepare("SELECT name FROM storage_mount WHERE engineId=? AND enabled=1 ORDER BY name") {
-        Ok(s) => s, Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))),
+
+    let (engine, _mount_children, mount_config) = {
+        let conn = state.db.get().unwrap();
+        let engine = match conn.query_row(
+            "SELECT id, remark, url, userName, token, engineType, systemKey, protected, createTime FROM alist_list WHERE id=?",
+            [id], |row| Ok(Engine { id: row.get(0)?, remark: row.get(1)?, url: row.get(2)?, user_name: row.get(3)?, token: row.get(4)?, engine_type: row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "alist".to_string()), system_key: row.get(6)?, protected: row.get::<_, Option<bool>>(7)?.unwrap_or(false), create_time: row.get(8)? }),
+        ) { Ok(e) => e, Err(_) => return Json(ApiResponse::not_found("引擎不存在")) };
+
+        let mut stmt = match conn.prepare("SELECT name FROM storage_mount WHERE engineId=? AND enabled=1 ORDER BY name") {
+            Ok(s) => s, Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))),
+        };
+        let children: Vec<serde_json::Value> = match stmt.query_map([id], |row| {
+            let name = row.get::<_, String>(0)?;
+            Ok(serde_json::json!({"path": name}))
+        }) { Ok(iter) => iter.filter_map(|r| r.ok()).collect(), Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))) };
+
+        // Root path: return mount names directly
+        if path.is_empty() || path == "/" {
+            return Json(ApiResponse::ok(serde_json::json!({"engine": engine, "child": children, "path": path})));
+        }
+
+        // Non-root path: resolve mount name to get filesystem base path
+        let path_trimmed = path.trim_start_matches('/');
+        let mount_name = path_trimmed.split('/').next().unwrap_or("");
+        let config_str = match conn.query_row(
+            "SELECT config FROM storage_mount WHERE engineId=? AND name=? AND enabled=1",
+            rusqlite::params![id, mount_name],
+            |row| row.get::<_, String>(0),
+        ) {
+            Ok(c) => c,
+            Err(_) => return Json(ApiResponse::not_found("挂载目录不存在")),
+        };
+        (engine, children, Some(config_str))
     };
-    let children: Vec<serde_json::Value> = match stmt.query_map([id], |row| {
-        let name = row.get::<_, String>(0)?;
-        Ok(serde_json::json!({"path": name, "name": name, "leaf": true, "child": []}))
-    }) { Ok(iter) => iter.filter_map(|r| r.ok()).collect(), Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))) };
-    Json(ApiResponse::ok(serde_json::json!({"engine": engine, "child": children, "path": path})))
+
+    // Resolve filesystem path from mount config
+    let config_str = mount_config.unwrap();
+    let config: serde_json::Value = match serde_json::from_str(&config_str) {
+        Ok(c) => c,
+        Err(_) => return Json(ApiResponse::err("挂载配置解析失败")),
+    };
+    let base_path = match config.get("path").and_then(|v| v.as_str()) {
+        Some(p) => p.to_string(),
+        None => return Json(ApiResponse::err("挂载路径配置缺失")),
+    };
+
+    let path_trimmed = path.trim_start_matches('/');
+    let relative: String = {
+        let parts: Vec<&str> = path_trimmed.splitn(2, '/').collect();
+        if parts.len() > 1 { format!("/{}", parts[1]) } else { "/".to_string() }
+    };
+    let full_path = if relative == "/" {
+        base_path
+    } else {
+        format!("{}{}", base_path.trim_end_matches('/'), relative)
+    };
+
+    let result = tokio::task::spawn_blocking(move || {
+        let dir_path = std::path::Path::new(&full_path);
+        if !dir_path.is_dir() {
+            return Err("目录不存在".to_string());
+        }
+        let entries = match std::fs::read_dir(dir_path) {
+            Ok(e) => e,
+            Err(e) => return Err(format!("读取目录失败: {}", e)),
+        };
+        let mut children: Vec<serde_json::Value> = Vec::new();
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if !entry_path.is_dir() { continue; }
+            let name = entry.file_name().to_string_lossy().to_string();
+            children.push(serde_json::json!({"path": name}));
+        }
+        children.sort_by(|a, b| a["path"].as_str().unwrap_or("").to_lowercase().cmp(&b["path"].as_str().unwrap_or("").to_lowercase()));
+        Ok(children)
+    }).await;
+
+    match result {
+        Ok(Ok(children)) => Json(ApiResponse::ok(serde_json::json!({"engine": engine, "child": children, "path": path}))),
+        Ok(Err(e)) => Json(ApiResponse::err(&e)),
+        Err(e) => Json(ApiResponse::err(&format!("任务失败: {}", e))),
+    }
 }
 
 // ==================== 存储挂载 ====================

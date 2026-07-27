@@ -25,7 +25,7 @@ export function deleteEngine(id: number) {
 
 // GET /api/engines/:id/browse
 export function browseEngine(id: number, path?: string) {
-  return request<ApiResponse<{ engine: Engine; children: unknown[]; path: string }>>({
+  return request<ApiResponse<{ engine: Engine; child: unknown[]; path: string }>>({
     url: `/api/engines/${id}/browse`,
     method: 'get',
     params: path ? { path } : undefined,

@@ -28,7 +28,7 @@ const getPath = async (path) => {
   pathLoading.value = true;
   try {
     const res = await browseEngine(props.alistId, path);
-    return res.data;
+    return res.data?.child ?? [];
   } catch (err) {
     return [];
   } finally {
