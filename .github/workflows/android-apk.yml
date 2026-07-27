@@ -100,6 +100,7 @@ jobs:
             buildozer-${{ runner.os }}-v4-
 
       - name: Build Android Debug APK
+        id: build-apk
         working-directory: rustsync
         run: |
           echo "=== Build Environment ==="
@@ -111,7 +112,17 @@ jobs:
           echo "=== Starting Buildozer ==="
           PYTHONWARNINGS=ignore::UserWarning python -m buildozer -v android debug 2>&1 | tee buildozer.log
 
+      - name: Upload Buildozer Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildozer-log
+          path: rustsync/buildozer.log
+          if-no-files-found: ignore
+          retention-days: 3
+
       - name: Package APK
+        if: steps.build-apk.outcome == 'success'
         run: |
           echo "=== Searching for APK ==="
           find rustsync/bin -type f -name '*.apk' 2>/dev/null || echo "No APK found in rustsync/bin"
