@@ -1,7 +1,7 @@
 name: Android APK Build
 
 # Auto-build Android APK on push to main
-# Fix: use ubuntu-22.04, add setuptools/wheel, set JAVA_HOME/ANDROID_HOME env vars
+# Fix: use ubuntu-latest, consistent with pre-release workflow
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 jobs:
   build-android-apk:
     name: Build Android APK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     continue-on-error: true
     env:
       APP_NAME: RustSync

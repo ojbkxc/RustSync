@@ -1,7 +1,7 @@
 name: Pre-release
 
 # Auto-build pre-release on every push to main
-# Trigger CI for current code verification v3 (fix Android APK build)
+# Trigger CI for current code verification v4 (APK build fixed)
 
 on:
   push:
@@ -425,20 +425,31 @@ jobs:
           git push origin $PRE_TAG
       - name: Create/Update Pre-release
         if: steps.collect.outputs.files != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.1.0
-          name: RustSync v1.1.0 (Pre-release)
-          body: |
-            ## RustSync 1.1.0 Pre-release
-            Auto-built pre-release, updated on every push to main.
-            ### Included
-            - APK, Magisk, Linux (amd64/arm64), Windows (amd64), macOS (x86_64/arm64)
-            - Docker: ojbkxc/rustsync:1.1.0 / ojbkxc/rustsync:latest
-            - docker-compose.yml
-            ### Defaults
-            - Port: 8023
-            - Password: admin
-          files: ${{ steps.collect.outputs.files }}
-          draft: false
-          prerelease: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Delete existing release if it exists
+          gh release delete "$PRE_TAG" --yes --cleanup-tag 2>/dev/null || true
+          sleep 3
+          # Recreate tag (point to current commit)
+          git tag -f "$PRE_TAG" -m "Pre-release $PRE_TAG"
+          git push origin "$PRE_TAG" --force
+          # Create release notes
+          cat > /tmp/release_notes.md << 'RNEOF'
+          ## RustSync 1.1.0 Pre-release
+          Auto-built pre-release, updated on every push to main.
+          ### Included
+          - APK, Magisk, Linux (amd64/arm64), Windows (amd64), macOS (x86_64/arm64)
+          - Docker: ojbkxc/rustsync:1.1.0 / ojbkxc/rustsync:latest
+          - docker-compose.yml
+          ### Defaults
+          - Port: 8023
+          - Password: admin
+          RNEOF
+          # Create release and upload all files
+          gh release create "$PRE_TAG" \
+            --title "RustSync $PRE_TAG (Pre-release)" \
+            --notes-file /tmp/release_notes.md \
+            --prerelease \
+            $(echo "${{ steps.collect.outputs.files }}" | tr '\n' ' ')
