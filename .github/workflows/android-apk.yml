@@ -1,0 +1,114 @@
+name: Android APK Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      APP_NAME: RustSync
+      PRE_VERSION: 1.1.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: rustsync/web/package-lock.json
+
+      - name: Build Frontend
+        working-directory: rustsync/web
+        run: |
+          sed -i "s/__version_placeholder__/$PRE_VERSION/g" src/locales/zh-CN.yaml
+          sed -i "s/__version_placeholder__/$PRE_VERSION/g" src/locales/en.yaml
+          npm ci
+          npm run build
+
+      - name: Prepare Frontend
+        run: |
+          cd rustsync
+          rm -rf front
+          cp -r web/dist front
+          test -f front/index.html
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          rustup target add aarch64-linux-android
+
+      - name: Copy Frontend to Rust static
+        run: |
+          mkdir -p server/static
+          cp -r rustsync/front/* server/static/
+
+      - name: Build Rust (arm64-v8a)
+        working-directory: server
+        run: |
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../rustsync/bin/arm64-v8a
+          cp target/aarch64-linux-android/release/rustsync-server ../rustsync/bin/arm64-v8a/rustsync_server
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libffi-dev libssl-dev libsqlite3-dev libbz2-dev libreadline-dev libltdl-dev libtool-bin ccache git wget unzip zip openjdk-17-jdk build-essential
+          echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "buildozer==1.5.0" "python-for-android==2024.01.21" "Cython==0.29.34" virtualenv
+
+      - name: Cache Buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+          key: buildozer-${{ runner.os }}-v3-${{ hashFiles('rustsync/buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-v3-
+
+      - name: Build Android Debug APK
+        working-directory: rustsync
+        run: |
+          PYTHONWARNINGS="ignore:Unable to find acceptable character detection:UserWarning" buildozer -v android debug
+
+      - name: Package APK
+        run: |
+          mkdir -p dist
+          apk_path=$(find rustsync/bin -maxdepth 1 -name '*.apk' -print -quit)
+          if [ -z "$apk_path" ]; then echo "::error::APK not found"; exit 1; fi
+          cp "$apk_path" "dist/${APP_NAME}-app-${PRE_VERSION}.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 7
