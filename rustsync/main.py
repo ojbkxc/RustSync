@@ -107,10 +107,10 @@ def _monitor_rust():
             time.sleep(1)
 
 async def main():
+    global _RUST_BINARY
     print(f'[INFO] RustSync APK starting (ABI={_ABI})')
     alt = os.path.join(_app_dir, 'rustsync_server')
     if not os.path.exists(_RUST_BINARY) and os.path.exists(alt):
-        global _RUST_BINARY
         _RUST_BINARY = alt
 
     if not _start_rust():
