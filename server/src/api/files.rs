@@ -310,7 +310,8 @@ pub async fn file_info(Query(q): Query<FilePath>) -> Json<ApiResponse<serde_json
     })))
 }
 
-pub async fn upload_file(mut multipart: Multipart) -> Json<ApiResponse<String>> {
+pub async fn upload_file(multipart: Multipart) -> Json<ApiResponse<String>> {
+    let mut multipart = multipart;
     let mut dest_dir = String::new();
     let mut file_name = String::new();
     let mut file_data: Option<Bytes> = None;
@@ -358,7 +359,7 @@ pub async fn upload_file(mut multipart: Multipart) -> Json<ApiResponse<String>> 
     ))
 }
 
-pub async fn download_file(Query(q): Query<FilePath>) -> impl axum::response::IntoResponse {
+pub async fn download_file(Query(q): Query<FilePath>) -> axum::response::Response {
     let path = normalize_path(&q.path);
     let p = Path::new(&path);
 

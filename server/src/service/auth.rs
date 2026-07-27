@@ -117,7 +117,7 @@ pub async fn logout() -> axum::response::Response {
 pub async fn get_user(
     State(state): State<crate::state::SharedState>,
     claims: Claims,
-) -> impl IntoResponse {
+) -> Json<ApiResponse<UserInfo>> {
     let conn = state.db.get().unwrap();
     let result = conn.query_row(
         "SELECT id, createTime FROM user_list WHERE id=?",

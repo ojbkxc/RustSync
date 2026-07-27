@@ -16,11 +16,11 @@ pub async fn index() -> axum::response::Response {
     }
 }
 
-pub async fn health_check() -> impl IntoResponse {
+pub async fn health_check() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse::ok(serde_json::json!({"status": "healthy", "version": env!("CARGO_PKG_VERSION")})))
 }
 
-pub async fn get_language() -> impl IntoResponse {
+pub async fn get_language() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse::ok(serde_json::json!({"language": i18n::get_current_lang(), "languages": i18n::get_supported_languages()})))
 }
 
@@ -46,7 +46,7 @@ pub struct LogQuery {
     pub lines: Option<usize>,
 }
 
-pub async fn log_list() -> impl IntoResponse {
+pub async fn log_list() -> Json<ApiResponse<serde_json::Value>> {
     let log_dir = crate::config::get_config().log_dir;
     let dir = std::path::Path::new(&log_dir);
     let mut logs = Vec::new();
@@ -65,7 +65,7 @@ pub async fn log_list() -> impl IntoResponse {
     Json(ApiResponse::ok(logs))
 }
 
-pub async fn log_read(Query(q): Query<LogQuery>) -> impl IntoResponse {
+pub async fn log_read(Query(q): Query<LogQuery>) -> Json<ApiResponse<serde_json::Value>> {
     let log_dir = crate::config::get_config().log_dir;
     let log_path = std::path::Path::new(&log_dir).join("rustsync.log");
     if !log_path.exists() { return Json(ApiResponse::not_found("日志文件不存在")); }
