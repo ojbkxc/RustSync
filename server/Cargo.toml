@@ -13,7 +13,7 @@ tower-http = { version = "0.4", features = ["cors", "fs"] }
 # 序列化
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
+serde_yaml = "0.9.34-deprecated"
 
 # 数据库
 rusqlite = { version = "0.31", features = ["bundled"] }
