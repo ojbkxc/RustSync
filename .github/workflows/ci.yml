@@ -1,20 +1,17 @@
 name: CI
 
-# Trigger CI to verify compilation
-
 on:
   pull_request:
     types: [opened, reopened, synchronize]
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -26,7 +23,7 @@ jobs:
           echo "Current version: $VERSION"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
           node-version: "22.x"
           cache: npm
@@ -52,6 +49,17 @@ jobs:
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: |
+          # Download pre-built cargo-ndk binary instead of compiling from source
+          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v3.6.0/cargo-ndk-x86_64-unknown-linux-gnu.tar.gz -o /tmp/cargo-ndk.tar.gz
+          tar xzf /tmp/cargo-ndk.tar.gz -C /tmp
+          sudo cp /tmp/cargo-ndk /usr/local/bin/
+          sudo chmod +x /usr/local/bin/cargo-ndk
+          rustup target add aarch64-linux-android
 
       - name: Copy frontend to Rust static directory
         run: |
@@ -59,17 +67,47 @@ jobs:
           cp -r rustsync/front/* server/static/
           echo "Frontend copied to server/static/"
 
-      - name: Build Rust server (host target)
+      - name: Build Rust server (aarch64)
         working-directory: server
         run: |
-          cargo build --release 2>&1
-          echo "Rust binary built successfully"
+          cargo ndk --target aarch64-linux-android --platform 21 -- build --release
+          mkdir -p ../system/bin
+          cp target/aarch64-linux-android/release/rustsync-server ../system/bin/rustsync_server
+          echo "Rust binary built: rustsync_server"
+
+      - name: Package static files for Magisk
+        run: |
+          mkdir -p static
+          cp -r rustsync/front/* static/
+          echo "Static files packaged for Magisk module"
 
       - name: Verify build artifact
         run: |
-          if [ ! -f "server/target/release/rustsync-server" ]; then
+          if [ ! -f "system/bin/rustsync_server" ]; then
             echo "::error::Rust 二进制构建产物不存在"
             exit 1
           fi
-          echo "Rust 二进制已构建: server/target/release/rustsync-server"
+          echo "Rust 二进制已构建: system/bin/rustsync_server"
+          if [ -d "static" ] && [ "$(ls -A static 2>/dev/null)" ]; then
+            echo "前端静态文件已打包"
+          fi
           echo "构建产物验证通过"
+
+      - name: Package
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          zip -r RustSync-${VERSION}-ci.zip . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x ".gitignore" \
+            -x ".gitmodules" \
+            -x "rustsync/*" \
+            -x "server/src/*" \
+            -x "server/target/*" \
+            -x "server/Cargo.*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RustSync-CI
+          path: RustSync-*-ci.zip

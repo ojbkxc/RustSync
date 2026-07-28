@@ -29,7 +29,7 @@ jobs:
       DOCKER_NAME: rustsync
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
