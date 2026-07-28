@@ -24,12 +24,12 @@ jobs:
       ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22.x"
           cache: npm
@@ -55,9 +55,26 @@ jobs:
         with:
           targets: aarch64-linux-android
 
+      - name: Setup Android NDK
+        run: |
+          if [ -d "/usr/local/lib/android/sdk/ndk" ]; then
+            NDK=$(ls -d /usr/local/lib/android/sdk/ndk/*/ 2>/dev/null | sort -V | tail -1 | sed 's:/$::')
+            if [ -n "$NDK" ]; then echo "ANDROID_NDK_HOME=$NDK" >> $GITHUB_ENV; echo "Found NDK at: $NDK"; fi
+          fi
+          if [ -z "$ANDROID_NDK_HOME" ]; then
+            echo "Downloading NDK r27c..."
+            curl -fsSL https://dl.google.com/android/repository/android-ndk-r27c-linux.zip -o /tmp/ndk.zip
+            sudo mkdir -p /usr/local/lib/android/sdk/ndk
+            sudo unzip -q /tmp/ndk.zip -d /usr/local/lib/android/sdk/ndk
+            echo "ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk/android-ndk-r27c" >> $GITHUB_ENV
+          fi
+
       - name: Install cargo-ndk
         run: |
-          cargo install cargo-ndk
+          curl -fsSL https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz -o /tmp/cargo-ndk.tgz
+          tar xzf /tmp/cargo-ndk.tgz -C /tmp
+          sudo cp /tmp/cargo-ndk-*/cargo-ndk /tmp/cargo-ndk-*/cargo-ndk-runner /tmp/cargo-ndk-*/cargo-ndk-env /tmp/cargo-ndk-*/cargo-ndk-test /usr/local/bin/
+          sudo chmod +x /usr/local/bin/cargo-ndk /usr/local/bin/cargo-ndk-runner /usr/local/bin/cargo-ndk-env /usr/local/bin/cargo-ndk-test
           rustup target add aarch64-linux-android
 
       - name: Copy Frontend to Rust static
