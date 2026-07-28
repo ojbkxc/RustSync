@@ -25,7 +25,7 @@ pub fn load_languages() -> anyhow::Result<()> {
             if path.extension().map_or(false, |e| e == "yaml" || e == "yml") {
                 if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                     let content = std::fs::read_to_string(&path)?;
-                    let pack: LanguagePack = serde_yaml::from_str(&content)?;
+                    let pack: LanguagePack = serde_yml::from_str(&content)?;
                     packs.insert(stem.to_string(), pack);
                 }
             }
