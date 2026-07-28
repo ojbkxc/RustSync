@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/tags/v1.1.0'  # v1.1.0 由 pre-release workflow 处理
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
@@ -28,7 +28,7 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22.x"
           cache: npm
