@@ -291,7 +291,7 @@ fn cleanup_old_logs(state: &crate::state::SharedState, log_save: u32) {
             if let Ok(meta) = entry.metadata() {
                 if let Ok(modified) = meta.modified() {
                     if let Ok(dur) = modified.duration_since(std::time::UNIX_EPOCH) {
-                        if dur.as_secs() as i64 < cutoff {
+                        if (dur.as_secs() as i64) < cutoff {
                             let _ = std::fs::remove_file(&path);
                             tracing::info!("已清理过期日志: {}", name);
                         }
