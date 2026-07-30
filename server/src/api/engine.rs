@@ -331,7 +331,7 @@ pub async fn add_storage(State(state): State<crate::state::SharedState>, Json(bo
     let name = body.get("name").and_then(|v| v.as_str()).unwrap_or("");
     let driver_type = body.get("driverType").and_then(|v| v.as_str()).unwrap_or("");
     let config = body.get("config").cloned().unwrap_or_default();
-    let enabled = body.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
+    let enabled = body.get("enabled").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     let config_str = serde_json::to_string(&config).unwrap_or_default();
     let conn = state.db.get().unwrap();
     if let Err(e) = require_rustsync_engine(&conn, engine_id) { return Json(ApiResponse::bad_request(&e)); }
@@ -346,7 +346,7 @@ pub async fn update_storage(State(state): State<crate::state::SharedState>, Path
     let name = body.get("name").and_then(|v| v.as_str()).unwrap_or("");
     let driver_type = body.get("driverType").and_then(|v| v.as_str()).unwrap_or("");
     let config = body.get("config").cloned().unwrap_or_default();
-    let enabled = body.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
+    let enabled = body.get("enabled").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     let config_str = serde_json::to_string(&config).unwrap_or_default();
     let conn = state.db.get().unwrap();
     match conn.execute("UPDATE storage_mount SET name=?, driverType=?, config=?, enabled=?, configVersion=configVersion+1 WHERE id=?", rusqlite::params![name, driver_type, config_str, enabled as i32, id]) {

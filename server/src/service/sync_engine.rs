@@ -793,7 +793,7 @@ async fn send_task_notification(
     for (method, params) in notify_list {
         if need_not_sync {
             if let Ok(params_json) = serde_json::from_str::<serde_json::Value>(&params) {
-                if params_json.get("notSendNull").and_then(|v| v.as_bool()).unwrap_or(false) {
+                if params_json.get("notSendNull").and_then(|v| crate::data::json_bool(v)).unwrap_or(false) {
                     continue;
                 }
             }

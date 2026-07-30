@@ -39,7 +39,7 @@ fn normalize_source_mode(value: &serde_json::Value) -> Result<i32, String> {
 
 fn validate_and_normalize_job(mut body: serde_json::Value) -> Result<serde_json::Value, String> {
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0);
-    let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
+    let enable = body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     if is_cron == 2 && !enable {
         if let Some(obj) = body.as_object_mut() { obj.insert("enable".to_string(), serde_json::Value::Bool(true)); }
     }
@@ -175,7 +175,7 @@ pub async fn create_job(State(state): State<crate::state::SharedState>, Json(bod
     let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-    let enable = if is_cron == 2 && !body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) { true } else { body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true) };
+    let enable = if is_cron == 2 && !body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true) { true } else { body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true) };
 let new_id = insert_job_sync(&state, &body, enable, is_cron);
     let job_opt = if enable && is_cron != 2 { query_job_sync(&state, new_id) } else { None };
     if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
@@ -215,7 +215,7 @@ let old = get_old_job_fields(&state, job_id);
     let clear_snapshot = old.alist_id != new_alist_id || old.src_path != new_src_path || old.dst_path != new_dst_path || old.method != new_method || old.exclude != new_exclude || old.min_fs != new_min_fs || old.max_fs != new_max_fs;
     crate::service::scheduler::get_scheduler().stop_job(job_id).await;
     update_job_sync(&state, &body, job_id, clear_snapshot);
-    let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
+    let enable = body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let job_opt = if enable && is_cron != 2 { query_job_sync(&state, job_id) } else { None };
     if let Some(job) = job_opt { crate::service::scheduler::get_scheduler().start_job(job).await; }
@@ -456,7 +456,7 @@ fn extract_job_fields(body: &serde_json::Value) -> (Option<String>, String, Stri
     let exclude = body.get("exclude").and_then(|v| v.as_str()).map(|s| s.to_string());
     let min_file_size = body.get("minFileSize").and_then(|v| v.as_i64());
     let max_file_size = body.get("maxFileSize").and_then(|v| v.as_i64());
-    let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(true);
+    let enable = body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     (remark, src_path, dst_path, alist_id, use_cache_t, scan_interval_t, use_cache_s, scan_interval_s, method, source_mode, interval, year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, exclude, min_file_size, max_file_size, enable, is_cron)
 }

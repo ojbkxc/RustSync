@@ -59,7 +59,7 @@ pub async fn update_notify(State(state): State<crate::state::SharedState>, Path(
 
 /// PUT /api/notifications/:id/toggle
 pub async fn toggle_notify(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
-    let enable = body.get("enable").and_then(|v| v.as_bool()).unwrap_or(false);
+    let enable = body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(false);
     let conn = state.db.get().unwrap();
     match conn.execute("UPDATE notify SET enable=? WHERE id=?", rusqlite::params![enable as i32, id]) {
         Ok(_) => Json(ApiResponse::ok_msg(serde_json::json!({}), &i18n::t("notify_updated"))),
@@ -79,7 +79,7 @@ pub async fn delete_notify(State(state): State<crate::state::SharedState>, Path(
 pub async fn send_notification(method: i32, params: &str, title: &str, body: &str) -> anyhow::Result<()> {
     let params: serde_json::Value = serde_json::from_str(params)?;
     // 如果配置了不发送空消息，且当前标题是"无需同步"类消息，跳过
-    if params.get("notSendNull").and_then(|v| v.as_bool()).unwrap_or(false) {
+    if params.get("notSendNull").and_then(|v| crate::data::json_bool(v)).unwrap_or(false) {
         if title.contains("无需同步") || title.contains("no sync") {
             return Ok(());
         }
