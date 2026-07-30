@@ -10,7 +10,7 @@ pub struct LocalDriver {
 impl LocalDriver {
     #[allow(dead_code)]
     pub fn new(config: &serde_json::Value) -> anyhow::Result<Self> {
-        let path = config.get("path")
+        let path = config.get("root_path")
             .and_then(|v| v.as_str())
             .unwrap_or("/");
         let root = PathBuf::from(path);

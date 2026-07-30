@@ -17,7 +17,7 @@ impl AliyunDriver {
         let client_id = config.get("client_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let client_secret = config.get("client_secret").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let refresh_token = config.get("refresh_token").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let root = config.get("root").and_then(|v| v.as_str()).unwrap_or("root").to_string();
+        let root = config.get("root_folder_id").and_then(|v| v.as_str()).unwrap_or("root").to_string();
 
         Ok(Self { client_id, client_secret, refresh_token, root })
     }

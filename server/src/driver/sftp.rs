@@ -20,7 +20,7 @@ impl SftpDriver {
         let port = config.get("port").and_then(|v| v.as_u64()).unwrap_or(22) as u16;
         let username = config.get("username").and_then(|v| v.as_str()).unwrap_or("root").to_string();
         let password = config.get("password").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let root = config.get("root").and_then(|v| v.as_str()).unwrap_or("/").to_string();
+        let root = config.get("root_path").and_then(|v| v.as_str()).unwrap_or("/").to_string();
 
         Ok(Self { host, port, username, password, root })
     }

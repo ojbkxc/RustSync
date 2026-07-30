@@ -21,7 +21,7 @@ impl SmbDriver {
         let share = config.get("share").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let username = config.get("username").and_then(|v| v.as_str()).unwrap_or("guest").to_string();
         let password = config.get("password").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let root = config.get("root").and_then(|v| v.as_str()).unwrap_or("/").to_string();
+        let root = config.get("root_path").and_then(|v| v.as_str()).unwrap_or("/").to_string();
 
         Ok(Self { host, port, share, username, password, root })
     }
