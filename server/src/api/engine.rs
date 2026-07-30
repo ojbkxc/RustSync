@@ -219,7 +219,7 @@ pub async fn browse_engine(State(state): State<crate::state::SharedState>, Path(
         Ok(c) => c,
         Err(_) => return Json(ApiResponse::err("挂载配置解析失败")),
     };
-    let base_path = match config.get("path").and_then(|v| v.as_str()) {
+    let base_path = match config.get("root_path").and_then(|v| v.as_str()) {
         Some(p) => p.to_string(),
         None => return Json(ApiResponse::err("挂载路径配置缺失")),
     };
@@ -275,7 +275,7 @@ fn filesystem_roots() -> Vec<serde_json::Value> {
     };
     #[cfg(target_os = "windows")] {
         for letter in 'A'..='Z' {
-let path = format!("{}:\\", letter);
+let path = format!("{}:\", letter);
             if std::path::Path::new(&path).is_dir() { add(&format!("{}:", letter), &path); }
         }
     }
