@@ -414,8 +414,138 @@ pub async fn sftp_test(Json(body): Json<serde_json::Value>) -> Json<ApiResponse<
     }
 }
 
-/// POST /api/storage/sftp-browse
+/// GET /api/storage/sftp-browse
 pub async fn sftp_browse(Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
     let path = body.get("path").and_then(|v| v.as_str()).unwrap_or("/");
     Json(ApiResponse::ok(serde_json::json!({"path": path, "files": []})))
+}
+
+/// GET /api/engines/:id/browse-path
+/// 通用目录浏览端点，支持 Alist 和 RustSync 引擎
+/// 返回平铺的 {path: name} 对象数组，与 taosync-main 的 /alist 端点行为一致
+pub async fn browse_path(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Query(params): Query<std::collections::HashMap<String, String>>) -> Json<ApiResponse<serde_json::Value>> {
+    let path = params.get("path").cloned().unwrap_or_default();
+    let path = if path.is_empty() { "/".to_string() } else { path };
+
+    let conn = state.db.get().unwrap();
+    let engine = match conn.query_row(
+        "SELECT id, remark, url, userName, token, engineType, systemKey, protected, createTime FROM alist_list WHERE id=?",
+        [id], |row| Ok(Engine { id: row.get(0)?, remark: row.get(1)?, url: row.get(2)?, user_name: row.get(3)?, token: row.get(4)?, engine_type: row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "alist".to_string()), system_key: row.get(6)?, protected: row.get::<_, Option<bool>>(7)?.unwrap_or(false), create_time: row.get(8)? }),
+    ) { Ok(e) => e, Err(_) => return Json(ApiResponse::not_found("引擎不存在")) };
+
+    let is_rustsync = engine.engine_type == "rustsync" && engine.system_key.as_deref() == Some("rustsync");
+
+    if is_rustsync {
+        // RustSync 引擎：通过挂载配置解析路径
+        if path == "/" {
+            // 根路径：返回挂载点名称列表
+            let mut stmt = match conn.prepare("SELECT name FROM storage_mount WHERE engineId=? AND enabled=1 ORDER BY name") {
+                Ok(s) => s, Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))),
+            };
+            let children: Vec<serde_json::Value> = match stmt.query_map([id], |row| {
+                let name = row.get::<_, String>(0)?;
+                Ok(serde_json::json!({"path": name}))
+            }) { Ok(iter) => iter.filter_map(|r| r.ok()).collect(), Err(e) => return Json(ApiResponse::err(&format!("查询失败: {}", e))) };
+            return Json(ApiResponse::ok(serde_json::json!(children)));
+        }
+
+        // 非根路径：解析挂载点，读取本地文件系统
+        let path_trimmed = path.trim_start_matches('/');
+        let mount_name = path_trimmed.split('/').next().unwrap_or("");
+        let config_str = match conn.query_row(
+            "SELECT config FROM storage_mount WHERE engineId=? AND name=? AND enabled=1",
+            rusqlite::params![id, mount_name],
+            |row| row.get::<_, String>(0),
+        ) { Ok(c) => c, Err(_) => return Json(ApiResponse::not_found("挂载目录不存在")) };
+        drop(conn);
+
+        let config: serde_json::Value = match serde_json::from_str(&config_str) {
+            Ok(c) => c, Err(_) => return Json(ApiResponse::err("挂载配置解析失败")),
+        };
+        let base_path = match config.get("root_path").and_then(|v| v.as_str()) {
+            Some(p) => p.to_string(), None => return Json(ApiResponse::err("挂载路径配置缺失")),
+        };
+
+        let relative: String = {
+            let parts: Vec<&str> = path_trimmed.splitn(2, '/').collect();
+            if parts.len() > 1 { format!("/{}", parts[1]) } else { "/".to_string() }
+        };
+        let full_path = if relative == "/" {
+            base_path
+        } else {
+            format!("{}{}", base_path.trim_end_matches('/'), relative)
+        };
+
+        let result = tokio::task::spawn_blocking(move || {
+            let dir_path = std::path::Path::new(&full_path);
+            if !dir_path.is_dir() { return Err("目录不存在".to_string()); }
+            let entries = match std::fs::read_dir(dir_path) { Ok(e) => e, Err(e) => return Err(format!("读取目录失败: {}", e)) };
+            let mut children: Vec<serde_json::Value> = Vec::new();
+            for entry in entries.flatten() {
+                let entry_path = entry.path();
+                if !entry_path.is_dir() { continue; }
+                let name = entry.file_name().to_string_lossy().to_string();
+                children.push(serde_json::json!({"path": name}));
+            }
+            children.sort_by(|a, b| a["path"].as_str().unwrap_or("").to_lowercase().cmp(&b["path"].as_str().unwrap_or("").to_lowercase()));
+            Ok(children)
+        }).await;
+
+        match result {
+            Ok(Ok(children)) => Json(ApiResponse::ok(serde_json::json!(children))),
+            Ok(Err(e)) => Json(ApiResponse::err(&e)),
+            Err(e) => Json(ApiResponse::err(&format!("任务失败: {}", e))),
+        }
+    } else {
+        // Alist 引擎：调用 Alist API 获取目录列表
+        let url = engine.url.clone();
+        let token = engine.token.clone().unwrap_or_default();
+        drop(conn);
+
+        let result = tokio::task::spawn_blocking(move || -> Result<Vec<serde_json::Value>, String> {
+            let client = reqwest::blocking::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
+
+            let api_url = format!("{}/api/fs/list", url.trim_end_matches('/'));
+            let resp = client.post(&api_url)
+                .header("Authorization", &token)
+                .json(&serde_json::json!({"path": path, "refresh": true}))
+                .send()
+                .map_err(|e| format!("请求 Alist API 失败: {}", e))?;
+
+            if !resp.status().is_success() {
+                return Err(format!("Alist API 返回状态码: {}", resp.status()));
+            }
+
+            let body: serde_json::Value = resp.json().map_err(|e| format!("解析 Alist 响应失败: {}", e))?;
+            let code = body.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
+            if code != 200 {
+                let msg = body.get("message").and_then(|v| v.as_str()).unwrap_or("未知错误");
+                return Err(format!("Alist API 错误: {}", msg));
+            }
+
+            let content = body.get("data").and_then(|d| d.get("content")).and_then(|c| c.as_array());
+            match content {
+                Some(items) => {
+                    let dirs: Vec<serde_json::Value> = items.iter()
+                        .filter(|item| item.get("is_dir").and_then(|v| v.as_bool()).unwrap_or(false))
+                        .map(|item| {
+                            let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                            serde_json::json!({"path": name})
+                        })
+                        .collect();
+                    Ok(dirs)
+                }
+                None => Ok(vec![]),
+            }
+        }).await;
+
+        match result {
+            Ok(Ok(children)) => Json(ApiResponse::ok(serde_json::json!(children))),
+            Ok(Err(e)) => Json(ApiResponse::err(&e)),
+            Err(e) => Json(ApiResponse::err(&format!("任务失败: {}", e))),
+        }
+    }
 }

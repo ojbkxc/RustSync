@@ -32,6 +32,16 @@ export function browseEngine(id: number, path?: string) {
   })
 }
 
+// GET /api/engines/:id/browse-path
+// 通用目录浏览，返回平铺的 {path: name} 数组，支持 Alist 和 RustSync 引擎
+export function browseEnginePath(id: number, path?: string) {
+  return request<ApiResponse<{ path: string }[]>>({
+    url: `/api/engines/${id}/browse-path`,
+    method: 'get',
+    params: path ? { path } : undefined,
+  })
+}
+
 // ========== 存储挂载 ==========
 
 // GET /api/storage

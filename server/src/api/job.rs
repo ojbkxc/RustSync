@@ -17,6 +17,39 @@ fn paths_overlap(first: &str, second: &str) -> bool {
     a == b || a.starts_with(&format!("{}/", b)) || b.starts_with(&format!("{}/", a))
 }
 
+/// 解析虚拟路径为实际文件系统路径（用于重叠检查）
+/// 将 /MountName/Subdir/ 格式的路径通过 storage_mount 配置解析为实际路径
+fn resolve_virtual_path_overlap(conn: &rusqlite::Connection, engine_id: i64, virtual_path: &str) -> String {
+    if engine_id == 0 {
+        return virtual_path.to_string();
+    }
+    let trimmed = virtual_path.trim_start_matches('/').trim_end_matches('/');
+    if trimmed.is_empty() {
+        return virtual_path.to_string();
+    }
+    let parts: Vec<&str> = trimmed.splitn(2, '/').collect();
+    let mount_name = parts[0];
+    let relative = if parts.len() > 1 { format!("/{}", parts[1]) } else { String::new() };
+
+    if let Ok(config_str) = conn.query_row(
+        "SELECT config FROM storage_mount WHERE engineId=? AND name=? AND enabled=1",
+        rusqlite::params![engine_id, mount_name],
+        |row| row.get::<_, String>(0),
+    ) {
+        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&config_str) {
+            if let Some(root_path) = config.get("root_path").and_then(|v| v.as_str()) {
+                let root = root_path.trim_end_matches('/');
+                if relative.is_empty() {
+                    return root.to_string();
+                }
+                return format!("{}{}", root, relative);
+            }
+        }
+    }
+    // 无法解析时返回原路径
+    virtual_path.to_string()
+}
+
 fn normalize_file_size(value: &serde_json::Value) -> Result<Option<i64>, String> {
     match value {
         serde_json::Value::Null => Ok(None),
@@ -37,7 +70,7 @@ fn normalize_source_mode(value: &serde_json::Value) -> Result<i32, String> {
     }
 }
 
-fn validate_and_normalize_job(mut body: serde_json::Value) -> Result<serde_json::Value, String> {
+fn validate_and_normalize_job(mut body: serde_json::Value, conn: &rusqlite::Connection, engine_id: i64) -> Result<serde_json::Value, String> {
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0);
     let enable = body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true);
     if is_cron == 2 && !enable {
@@ -73,7 +106,15 @@ fn validate_and_normalize_job(mut body: serde_json::Value) -> Result<serde_json:
     let src_path = body.get("srcPath").and_then(|v| v.as_str()).unwrap_or("");
     let dst_path = body.get("dstPath").and_then(|v| v.as_str()).unwrap_or("");
     if !src_path.is_empty() && !dst_path.is_empty() {
-        for dst in dst_path.split(':') { if paths_overlap(src_path, dst) { return Err(i18n::t("source_target_overlap")); } }
+        let resolved_src = resolve_virtual_path_overlap(conn, engine_id, src_path);
+        for dst in dst_path.split(':') {
+            let dst = dst.trim();
+            if dst.is_empty() { continue; }
+            let resolved_dst = resolve_virtual_path_overlap(conn, engine_id, dst);
+            if paths_overlap(&resolved_src, &resolved_dst) {
+                return Err(i18n::t("source_target_overlap"));
+            }
+        }
     }
     Ok(body)
 }
@@ -172,7 +213,13 @@ pub async fn list_jobs(State(state): State<crate::state::SharedState>, Query(par
 
 /// POST /api/jobs
 pub async fn create_job(State(state): State<crate::state::SharedState>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
-    let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
+    let engine_id = body.get("alistId").and_then(|v| v.as_i64()).unwrap_or(0);
+    let conn = state.db.get().unwrap();
+    let body = match validate_and_normalize_job(body, &conn, engine_id) {
+        Ok(b) => b,
+        Err(e) => { drop(conn); return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
+    };
+    drop(conn);
     if body.get("id").is_some() { return Json(ApiResponse::<serde_json::Value>::bad_request("创建作业时请勿指定ID")); }
     let is_cron = body.get("isCron").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let enable = if is_cron == 2 && !body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true) { true } else { body.get("enable").and_then(|v| crate::data::json_bool(v)).unwrap_or(true) };
@@ -201,7 +248,13 @@ fn query_job_sync(state: &crate::state::SharedState, id: i64) -> Option<Job> {
 pub async fn update_job(State(state): State<crate::state::SharedState>, Path(id): Path<i64>, Json(body): Json<serde_json::Value>) -> Json<ApiResponse<serde_json::Value>> {
     let mut body = body;
     if let Some(obj) = body.as_object_mut() { obj.insert("id".to_string(), serde_json::Value::from(id)); }
-    let body = match validate_and_normalize_job(body) { Ok(b) => b, Err(e) => return Json(ApiResponse::<serde_json::Value>::bad_request(&e)) };
+    let engine_id = body.get("alistId").and_then(|v| v.as_i64()).unwrap_or(0);
+    let conn = state.db.get().unwrap();
+    let body = match validate_and_normalize_job(body, &conn, engine_id) {
+        Ok(b) => b,
+        Err(e) => { drop(conn); return Json(ApiResponse::<serde_json::Value>::bad_request(&e)); }
+    };
+    drop(conn);
     let job_id = id;
 let old = get_old_job_fields(&state, job_id);
     if old.enable == 1 && old.is_cron != 2 { return Json(ApiResponse::<serde_json::Value>::conflict(&i18n::t("disable_then_edit"))); }

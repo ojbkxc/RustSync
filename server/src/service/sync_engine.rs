@@ -141,6 +141,37 @@ fn is_excluded(rel_path: &str, name: &str, patterns: &[glob::Pattern]) -> bool {
 
 // ==================== 核心同步逻辑 ====================
 
+/// 解析虚拟路径为实际文件系统路径
+/// 将 /MountName/Subdir/ 格式的路径通过 storage_mount 配置解析为实际路径
+fn resolve_virtual_path(conn: &rusqlite::Connection, engine_id: i64, virtual_path: &str) -> String {
+    let trimmed = virtual_path.trim_start_matches('/').trim_end_matches('/');
+    if trimmed.is_empty() {
+        return virtual_path.to_string();
+    }
+    let parts: Vec<&str> = trimmed.splitn(2, '/').collect();
+    let mount_name = parts[0];
+    let relative = if parts.len() > 1 { format!("/{}", parts[1]) } else { String::new() };
+
+    // 查询挂载点的 root_path
+    if let Ok(config_str) = conn.query_row(
+        "SELECT config FROM storage_mount WHERE engineId=? AND name=? AND enabled=1",
+        rusqlite::params![engine_id, mount_name],
+        |row| row.get::<_, String>(0),
+    ) {
+        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&config_str) {
+            if let Some(root_path) = config.get("root_path").and_then(|v| v.as_str()) {
+                let root = root_path.trim_end_matches('/');
+                if relative.is_empty() {
+                    return root.to_string();
+                }
+                return format!("{}{}", root, relative);
+            }
+        }
+    }
+    // 无法解析时返回原路径
+    virtual_path.to_string()
+}
+
 /// 执行作业同步的核心逻辑
 pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     tracing::info!("执行作业 {} 同步逻辑", job_id);
@@ -148,10 +179,10 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     let state = crate::state::get_global_state();
 
     // 从数据库加载作业配置
-    let (src_path, dst_path_str, method, source_mode, exclude, min_size, max_size) = {
+    let (src_path, dst_path_str, method, source_mode, exclude, min_size, max_size, alist_id) = {
         let db = state.db.get().unwrap();
         db.query_row(
-            "SELECT srcPath, dstPath, method, sourceMode, exclude, minFileSize, maxFileSize FROM job WHERE id=?",
+            "SELECT srcPath, dstPath, method, sourceMode, exclude, minFileSize, maxFileSize, alistId FROM job WHERE id=?",
             [job_id],
             |row| {
                 Ok((
@@ -162,12 +193,25 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
                     row.get::<_, Option<String>>(4)?,
                     row.get::<_, Option<i64>>(5)?,
                     row.get::<_, Option<i64>>(6)?,
+                    row.get::<_, Option<i64>>(7)?,
                 ))
             },
         )?
     }; // MutexGuard dropped
 
-    let dst_roots: Vec<String> = dst_path_str.split(':').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+    // 解析虚拟路径为实际文件系统路径
+    let (resolved_src, resolved_dst_roots) = {
+        let db = state.db.get().unwrap();
+        let engine_id = alist_id.unwrap_or(0);
+        let resolved_src = resolve_virtual_path(&db, engine_id, &src_path);
+        let resolved_dst = dst_path_str.split(':')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .map(|p| resolve_virtual_path(&db, engine_id, &p))
+            .collect::<Vec<_>>();
+        (resolved_src, resolved_dst)
+    };
+
     let has_file_size_filter = min_size.is_some() || max_size.is_some();
 
     // 创建任务记录
@@ -189,9 +233,9 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
     let pattern_strs = gitignore_to_glob_patterns(&exclude_str);
     let compiled_patterns = compile_patterns(&pattern_strs);
 
-    // 扫描源目录
-    tracing::info!("扫描源目录: {}", src_path);
-    let src_path_clone = src_path.clone();
+    // 扫描源目录（使用解析后的实际路径）
+    tracing::info!("扫描源目录: {} (原始: {})", resolved_src, src_path);
+    let src_path_clone = resolved_src.clone();
     let compiled_clone = compiled_patterns.clone();
     let src_entries = tokio::task::spawn_blocking(move || {
         scan_local_directory(&src_path_clone, &compiled_clone, min_size, max_size)
@@ -205,7 +249,9 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
         sync_with_snapshot(&state, job_id, &src_entries, method, &compiled_patterns, min_size, max_size)?
     } else {
         // 实时对比模式：扫描目标目录，逐文件对比
-        sync_live_compare(&state, &src_path, &dst_path_str, &src_entries, &compiled_patterns, method, min_size, max_size)?
+        // 使用 resolved_dst_roots 拼接后的字符串作为目标路径
+        let resolved_dst_str = resolved_dst_roots.join(":");
+        sync_live_compare(&state, &resolved_src, &resolved_dst_str, &src_entries, &compiled_patterns, method, min_size, max_size)?
     };
 
     tracing::info!("作业 {}: 需要执行 {} 个操作", job_id, operations.len());
@@ -221,20 +267,20 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // 快照模式：先创建缺失的目录（在操作执行前）
+    // 快照模式：先创建缺失的目录（在操作执行前，使用解析后的目标路径）
     let failed_directory_prefixes: Vec<String> = if source_mode == 1 {
-        create_snapshot_directories(&state, &src_entries, &dst_roots, task_id).await
+        create_snapshot_directories(&state, &src_entries, &resolved_dst_roots, task_id).await
     } else {
         vec![]
     };
 
-    // 执行操作 — 对所有目标路径执行
-    let total = operations.len() * dst_roots.len();
+    // 执行操作 — 对所有目标路径执行（使用解析后的路径）
+    let total = operations.len() * resolved_dst_roots.len();
     let mut success = 0;
     let mut failed = 0;
     let mut move_src_files: Vec<(String, i64)> = vec![]; // 记录移动模式下需要删除的源文件
 
-    for dst_root in &dst_roots {
+    for dst_root in &resolved_dst_roots {
         for op in &operations {
             if is_aborted(job_id) {
                 tracing::info!("作业 {} 被中止", job_id);
@@ -286,7 +332,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
             };
 
             // Delete 操作只对第一个目标路径执行（避免重复删除）
-            if matches!(op, SyncOperation::Delete { .. }) && dst_root != &dst_roots[0] {
+            if matches!(op, SyncOperation::Delete { .. }) && dst_root != &resolved_dst_roots[0] {
                 let db = state.db.get().unwrap();
                 let _ = db.execute("UPDATE job_task_item SET status=2 WHERE id=?", [item_id]);
                 success += 1;
@@ -295,13 +341,13 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
 
             // Move 操作：先复制到目标，暂不删除源文件（finalize 阶段统一删除）
             if matches!(op, SyncOperation::Move { .. }) {
-                match execute_copy(&src_rel, &src_path, dst_root).await {
+                match execute_copy(&src_rel, &resolved_src, dst_root).await {
                     Ok(_) => {
                         success += 1;
                         let db = state.db.get().unwrap();
                         let _ = db.execute("UPDATE job_task_item SET status=2 WHERE id=?", [item_id]);
                         // 记录需要在 finalize 阶段删除的源文件
-                        if dst_root == &dst_roots[0] {
+                        if dst_root == &resolved_dst_roots[0] {
                             move_src_files.push((src_rel.clone(), file_size));
                         }
                     }
@@ -317,7 +363,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
                     }
                 }
             } else {
-                match execute_operation(op, &src_path, dst_root).await {
+                match execute_operation(op, &resolved_src, dst_root).await {
                     Ok(_) => {
                         success += 1;
                         let db = state.db.get().unwrap();
@@ -341,7 +387,7 @@ pub async fn run_sync_for_job(job_id: i64) -> anyhow::Result<()> {
 
     // Move 模式 finalization：所有目标复制成功后，验证并删除源文件
     if method == 2 && !is_aborted(job_id) && failed == 0 && !move_src_files.is_empty() {
-        finalize_move(&state, &src_path, &move_src_files, task_id).await;
+        finalize_move(&state, &resolved_src, &move_src_files, task_id).await;
     }
 
     // 快照模式：同步成功后保存快照

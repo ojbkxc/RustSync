@@ -62,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/engines", get(api::engine::list_engines).post(api::engine::add_engine))
         .route("/api/engines/:id", put(api::engine::update_engine).delete(api::engine::delete_engine))
         .route("/api/engines/:id/browse", get(api::engine::browse_engine))
+        .route("/api/engines/:id/browse-path", get(api::engine::browse_path))
         // 存储
         .route("/api/storage", get(api::engine::list_storage).post(api::engine::add_storage))
         .route("/api/storage/:id", put(api::engine::update_storage).delete(api::engine::delete_storage))
